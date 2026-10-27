@@ -1,0 +1,172 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f0e8;
+  --ink: #1c1915;
+  --muted: #5f584e;
+  --line: #ddd4c4;
+  --card: #fffdf8;
+  --accent: #1f6b4a;
+  --accent-ink: #f7fffb;
+  --warn: #8a4b12;
+  --shadow: 0 1px 0 rgb(28 25 21 / 6%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+header p,
+.section p,
+.meta {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+
+.section h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='tel'],
+input[type='url'] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notice {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #e7f3ec;
+}
+
+.notice.error {
+  background: #f8eadf;
+  color: var(--warn);
+}
+
+.card {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.card:first-of-type {
+  border-top: 0;
+}
+
+.card strong,
+.card em {
+  display: block;
+}
+
+.card em {
+  margin-top: 4px;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0;
+}
+
+.check input {
+  margin-top: 3px;
+}
+
+.hosts label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.value {
+  overflow-wrap: anywhere;
+}
