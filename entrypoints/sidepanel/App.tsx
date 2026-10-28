@@ -6,8 +6,10 @@ import { hostLabel } from '../../src/packages/form-memory/hosts'
 import {
   activePersonality,
   activeProfile,
+  addPersonality,
   emptyMemory,
   parseMemoryState,
+  PERSONALITY_LIMIT,
   selectPersonality,
   writeActiveProfile,
   type MemoryState,
@@ -38,6 +40,7 @@ export function App() {
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
   const [ready, setReady] = useState(false)
   const [personalityOpen, setPersonalityOpen] = useState(false)
+  const [profileName, setProfileName] = useState('')
   const memoryRef = useRef(memory)
   const pickerRef = useRef<HTMLDivElement>(null)
   const readyRef = useRef(false)
@@ -110,6 +113,52 @@ export function App() {
   function updateProfile(key: keyof Profile, value: string): void {
     remember(writeActiveProfile(memoryRef.current, { ...activeProfile(memoryRef.current), [key]: value }))
     scheduleFlush()
+  }
+
+  function onCreateProfile(name: string): void {
+    const previous = memoryRef.current
+    const preview = addPersonality(previous, name)
+    if (preview === previous) {
+      setNotice('')
+      setError(
+        previous.personalities.length >= PERSONALITY_LIMIT
+          ? `You can keep ${PERSONALITY_LIMIT} profiles.`
+          : 'Enter a profile name.',
+      )
+      return
+    }
+    cancelScheduledFlush()
+    void enqueue(async () => {
+      if (!readyRef.current) return
+      try {
+        const stored = await createChromeMemoryStore().load()
+        let base = stored
+        if (stored.personalities.some((personality) => personality.id === previous.activePersonalityId)) {
+          base = writeActiveProfile(selectPersonality(stored, previous.activePersonalityId), activeProfile(previous))
+        }
+        const created = addPersonality(base, name)
+        if (created === base) {
+          await createChromeMemoryStore().save({ ...base, answers: previous.answers })
+          setNotice('')
+          setError(
+            base.personalities.length >= PERSONALITY_LIMIT
+              ? `You can keep ${PERSONALITY_LIMIT} profiles.`
+              : 'Enter a profile name.',
+          )
+          return
+        }
+        const added = created.personalities.length > base.personalities.length
+        const next = { ...created, answers: previous.answers }
+        await createChromeMemoryStore().save(next)
+        remember(next)
+        setProfileName('')
+        setPersonalityOpen(false)
+        setError('')
+        setNotice(added ? `${activePersonality(next).name} created.` : `${activePersonality(next).name} selected.`)
+      } catch {
+        setError('Could not save on this device.')
+      }
+    })
   }
 
   function onPersonality(id: string): void {
@@ -424,7 +473,29 @@ export function App() {
             </ul>
           ) : null}
         </div>
-        <p class="meta">Default is selected until you choose another. Add a name in Settings.</p>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            onCreateProfile(profileName)
+          }}
+        >
+          <label>
+            New profile
+            <input
+              id="new-profile-name"
+              type="text"
+              value={profileName}
+              placeholder="Contractor"
+              autoComplete="off"
+              disabled={!ready || busy}
+              onInput={(event) => setProfileName(event.currentTarget.value)}
+            />
+          </label>
+          <button id="create-profile" type="submit" disabled={!ready || busy || !profileName.trim()}>
+            Create profile
+          </button>
+        </form>
+        <p class="meta">Default is selected until you choose another. Delete a profile in Settings.</p>
       </section>
 
       <section class="section">
