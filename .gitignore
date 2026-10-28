@@ -1,0 +1,11 @@
+node_modules
+.output
+.wxt
+dist
+*.local
+.DS_Store
+playwright-report
+test-results
+e2e/.profile
+e2e/shots
+*.tsbuildinfo
