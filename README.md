@@ -53,11 +53,11 @@ This opens Playwright's Chromium with the extension loaded, the side panel in fr
 
 ## Use it
 
-1. In the side panel, leave **Default** selected or choose Personal, Work, or Software engineer. Enter the name, email, phone, and links for that personality. **Fill empty fields** saves it and writes it into empty visible fields.
+1. In the side panel, leave **Default** selected, choose Personal, Work, or Software engineer, or **Create profile**. Enter the name, email, phone, and links for that personality. **Fill empty fields** saves it and writes it into empty visible fields.
 2. Answer a custom question on the page. Choose **Find answers to save**, uncheck anything you do not want kept, then **Save selected**.
 3. On the next application, **Fill empty fields** again. The same question fills. A different wording shows under Suggestions with the source question. **Accept** writes that one field.
 
-Settings, opened from the side panel, is where you add or remove a personality, pause Greenhouse, Lever, or the local demo, and turn the submit prompt on or off. Submit the demo form and the side panel opens with those details filled in. **Save profile** keeps them.
+Settings, opened from the side panel, is where you add or delete a profile, pause Greenhouse, Lever, or the local demo, and turn the submit prompt on or off. Default stays. Submit the demo form and the side panel opens with those details filled in. **Save profile** keeps them.
 
 Fill will not touch:
 

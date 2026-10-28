@@ -84,7 +84,7 @@ export function App() {
     const name = current.personalities.find((personality) => personality.id === id)?.name ?? 'Personality'
     const next = removePersonality(current, id)
     if (next === current) return
-    await commit(next, `${name} removed.`)
+    await commit(next, `${name} deleted.`)
   }
 
   async function onSelect(id: string): Promise<void> {
@@ -164,8 +164,14 @@ export function App() {
               {personality.id === DEFAULT_PERSONALITY_ID ? (
                 <span class="meta inline">Always available</span>
               ) : (
-                <button type="button" class="secondary" disabled={!ready} onClick={() => void onRemove(personality.id)}>
-                  Remove
+                <button
+                  id={`delete-profile-${personality.id}`}
+                  type="button"
+                  class="secondary"
+                  disabled={!ready}
+                  onClick={() => void onRemove(personality.id)}
+                >
+                  Delete profile
                 </button>
               )}
             </li>
