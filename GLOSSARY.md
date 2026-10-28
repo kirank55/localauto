@@ -8,6 +8,10 @@ A local-only tool that learns answers from the applications a person has already
 The name, email, phone, and links a person typed into Localauto.
 _Avoid_: resume, CV, account
 
+**Personality**:
+A named profile. Default is selected until the person picks another, such as Personal, Work, or Software engineer. Saved answers stay shared across personalities.
+_Avoid_: persona, account, mode
+
 **Profile slot**:
 A fixed field role — name, email, phone, or a link — recognized from the control itself.
 _Avoid_: attribute, mapping

@@ -4,7 +4,7 @@ Localauto is a Chrome extension that fills Greenhouse and Lever job applications
 
 Nothing is uploaded. There is no account.
 
-The beta is the first slice in [PLAN.md](PLAN.md): Greenhouse, Lever, profile fields, confirm-save, exact reuse, and slot-gated suggestions. Embeddings, Workday, LinkedIn Easy Apply, and automatic submit detection are not in this version.
+The beta is the first slice in [PLAN.md](PLAN.md): Greenhouse, Lever, profile fields, confirm-save, exact reuse, and slot-gated suggestions. A personality is a named profile. Default is selected until you choose another. Submitting a form opens the side panel with name, email, and phone filled in. Save profile keeps them. Embeddings, Workday, and LinkedIn Easy Apply are not in this version.
 
 ## Install
 
@@ -39,16 +39,25 @@ Open http://127.0.0.1:4173
 - [Lever-style application](http://127.0.0.1:4173/lever.html)
 - [A second form with paraphrased questions](http://127.0.0.1:4173/return-visit.html)
 - [The Greenhouse form inside an iframe](http://127.0.0.1:4173/embedded.html)
+- [A submit button, so you can see the listener](http://127.0.0.1:4173/submit.html)
 
 Reload the demo tab once after you load the extension so the content script is present.
 
+## Try it
+
+```bash
+npm run try
+```
+
+This opens Playwright's Chromium with the extension loaded, the side panel in front, and the submit demo in the other tab. Close the window to stop. Saving a source file reloads the extension. Install that browser once with `npx playwright install chromium`.
+
 ## Use it
 
-1. In the side panel, enter your name, email, phone, and links. **Fill empty fields** saves the profile and writes it into empty visible fields.
+1. In the side panel, leave **Default** selected or choose Personal, Work, or Software engineer. Enter the name, email, phone, and links for that personality. **Fill empty fields** saves it and writes it into empty visible fields.
 2. Answer a custom question on the page. Choose **Find answers to save**, uncheck anything you do not want kept, then **Save selected**.
 3. On the next application, **Fill empty fields** again. The same question fills. A different wording shows under Suggestions with the source question. **Accept** writes that one field.
 
-You can pause Greenhouse, Lever, or the local demo at the bottom of the panel.
+Settings, opened from the side panel, is where you add or remove a personality, pause Greenhouse, Lever, or the local demo, and turn the submit prompt on or off. Submit the demo form and the side panel opens with those details filled in. **Save profile** keeps them.
 
 Fill will not touch:
 

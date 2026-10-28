@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { createChromeMemoryStore } from '../../src/packages/form-memory/chrome-memory'
-import { hostLabel, type HostKey } from '../../src/packages/form-memory/hosts'
+import { createChromeMemoryStore, MEMORY_STORAGE_KEY } from '../../src/packages/form-memory/chrome-memory'
+import { createChromeSubmitOffer, SUBMIT_OFFER_KEY } from '../../src/packages/form-memory/chrome-submit'
 import { mergeFrameFills, rememberAnswers, type MergedFill } from '../../src/packages/form-memory'
-import { emptyMemory, type MemoryState, type Profile } from '../../src/packages/form-memory/memory'
+import { hostLabel } from '../../src/packages/form-memory/hosts'
+import {
+  activePersonality,
+  activeProfile,
+  emptyMemory,
+  parseMemoryState,
+  selectPersonality,
+  writeActiveProfile,
+  type MemoryState,
+  type Profile,
+} from '../../src/packages/form-memory/memory'
 import type { SaveCandidate } from '../../src/packages/form-memory/model'
+import { mergeSubmitOffer, parseSubmitOffer, type SubmitOffer } from '../../src/packages/form-memory/submit'
 import { findApplicationTab, requestFrames } from './frames'
 
 type CandidateRow = SaveCandidate & { frameId: number; checked: boolean }
@@ -17,8 +28,6 @@ const PROFILE_FIELDS: readonly (readonly [keyof Profile, string, string, string]
   ['website', 'Website', 'https://ada.example', 'url'],
 ]
 
-const HOSTS: readonly HostKey[] = ['greenhouse', 'lever', 'demo']
-
 export function App() {
   const [memory, setMemory] = useState<MemoryState>(emptyMemory())
   const [notice, setNotice] = useState('')
@@ -28,51 +37,212 @@ export function App() {
   const [result, setResult] = useState<MergedFill | null>(null)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
   const [ready, setReady] = useState(false)
+  const [personalityOpen, setPersonalityOpen] = useState(false)
   const memoryRef = useRef(memory)
-  memoryRef.current = memory
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const readyRef = useRef(false)
+  const pendingOffer = useRef<SubmitOffer['profile'] | null>(null)
+  const tail = useRef(Promise.resolve())
+  const flushTimer = useRef<number | undefined>(undefined)
 
-  useEffect(() => {
-    let active = true
-    void createChromeMemoryStore()
-      .load()
-      .then((stored) => {
-        if (!active) return
-        memoryRef.current = stored
-        setMemory(stored)
-        setReady(true)
-      })
-      .catch(() => {
-        if (!active) return
-        setError('Could not read on-device storage.')
-        setReady(true)
-      })
-    return () => {
-      active = false
+  function cancelScheduledFlush(): void {
+    if (flushTimer.current === undefined) return
+    window.clearTimeout(flushTimer.current)
+    flushTimer.current = undefined
+  }
+
+  function enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const run = tail.current.then(task, task)
+    tail.current = run.then(
+      () => undefined,
+      () => undefined,
+    )
+    return run
+  }
+
+  function scheduleFlush(): void {
+    cancelScheduledFlush()
+    flushTimer.current = window.setTimeout(() => {
+      flushTimer.current = undefined
+      void enqueue(() => flushNow())
+    }, 300)
+  }
+
+  async function flushNow(message?: string): Promise<boolean> {
+    if (!readyRef.current) return false
+    const draft = memoryRef.current
+    try {
+      const stored = await createChromeMemoryStore().load()
+      const activeGone = !stored.personalities.some((personality) => personality.id === draft.activePersonalityId)
+      let next = stored
+      if (!activeGone) {
+        next = writeActiveProfile(selectPersonality(stored, draft.activePersonalityId), activeProfile(draft))
+      }
+      next = { ...next, answers: draft.answers }
+      await createChromeMemoryStore().save(next)
+      const latest = memoryRef.current
+      const unchanged =
+        latest.activePersonalityId === draft.activePersonalityId &&
+        JSON.stringify(activeProfile(latest)) === JSON.stringify(activeProfile(draft)) &&
+        JSON.stringify(latest.answers) === JSON.stringify(draft.answers)
+      if (activeGone || unchanged) {
+        memoryRef.current = next
+        setMemory(next)
+      } else {
+        scheduleFlush()
+      }
+      if (message) {
+        setError('')
+        setNotice(message)
+      }
+      return true
+    } catch {
+      setError('Could not save on this device.')
+      return false
     }
-  }, [])
+  }
 
-  async function persist(next: MemoryState, message: string): Promise<void> {
-    setMemory(next)
+  function remember(next: MemoryState): void {
     memoryRef.current = next
-    await createChromeMemoryStore().save(next)
-    setError('')
-    setNotice(message)
+    setMemory(next)
   }
 
   function updateProfile(key: keyof Profile, value: string): void {
-    setMemory((current) => {
-      const next = { ...current, profile: { ...current.profile, [key]: value } }
-      memoryRef.current = next
-      return next
+    remember(writeActiveProfile(memoryRef.current, { ...activeProfile(memoryRef.current), [key]: value }))
+    scheduleFlush()
+  }
+
+  function onPersonality(id: string): void {
+    const previous = memoryRef.current
+    const switched = selectPersonality(previous, id)
+    if (switched.activePersonalityId === previous.activePersonalityId) return
+    remember(switched)
+    cancelScheduledFlush()
+    void enqueue(async () => {
+      if (!readyRef.current) return
+      try {
+        const stored = await createChromeMemoryStore().load()
+        let next = stored
+        if (stored.personalities.some((personality) => personality.id === previous.activePersonalityId)) {
+          next = writeActiveProfile(selectPersonality(stored, previous.activePersonalityId), activeProfile(previous))
+        }
+        if (!next.personalities.some((personality) => personality.id === id)) {
+          remember(next)
+          setError('That personality is no longer on this device.')
+          return
+        }
+        next = { ...selectPersonality(next, id), answers: previous.answers }
+        await createChromeMemoryStore().save(next)
+        if (memoryRef.current.activePersonalityId === id) remember(next)
+        setError('')
+        setNotice(`${activePersonality(next).name} selected.`)
+      } catch {
+        setError('Could not save on this device.')
+      }
     })
   }
+
+  const flushRef = useRef(flushNow)
+  const cancelRef = useRef(cancelScheduledFlush)
+  const enqueueRef = useRef(enqueue)
+  flushRef.current = flushNow
+  cancelRef.current = cancelScheduledFlush
+  enqueueRef.current = enqueue
+
+  function showSubmitOffer(profile: SubmitOffer['profile']): void {
+    const next = mergeSubmitOffer(memoryRef.current, profile)
+    memoryRef.current = next
+    setMemory(next)
+    setNotice('Details from the form are in the profile. Save profile to keep them.')
+    setError('')
+    void createChromeSubmitOffer().clear()
+  }
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      try {
+        const stored = await createChromeMemoryStore().load()
+        if (!active) return
+        const offer = await createChromeSubmitOffer().load()
+        if (!active) return
+        const profile = pendingOffer.current ?? offer?.profile ?? null
+        pendingOffer.current = null
+        const next = profile ? mergeSubmitOffer(stored, profile) : stored
+        memoryRef.current = next
+        readyRef.current = true
+        setMemory(next)
+        setReady(true)
+        if (profile) {
+          setNotice('Details from the form are in the profile. Save profile to keep them.')
+          await createChromeSubmitOffer().clear()
+        }
+      } catch {
+        if (!active) return
+        setError('Could not read on-device storage.')
+      }
+    })()
+
+    function onStorageChanged(changes: { [key: string]: { newValue?: unknown } }, area: string): void {
+      if (area === 'session' && SUBMIT_OFFER_KEY in changes) {
+        const offer = parseSubmitOffer(changes[SUBMIT_OFFER_KEY]?.newValue)
+        if (!offer) return
+        if (!readyRef.current) {
+          pendingOffer.current = offer.profile
+          return
+        }
+        showSubmitOffer(offer.profile)
+        return
+      }
+      if (area !== 'local') return
+      if (MEMORY_STORAGE_KEY in changes && !editingProfile()) {
+        const next = parseMemoryState(changes[MEMORY_STORAGE_KEY]?.newValue)
+        memoryRef.current = next
+        setMemory(next)
+      }
+    }
+
+    function onBlur(): void {
+      cancelRef.current()
+      void enqueueRef.current(() => flushRef.current())
+    }
+
+    browser.storage.onChanged.addListener(onStorageChanged)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      active = false
+      if (flushTimer.current !== undefined) window.clearTimeout(flushTimer.current)
+      browser.storage.onChanged.removeListener(onStorageChanged)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!personalityOpen) return
+    function onPointerDown(event: PointerEvent): void {
+      const target = event.target
+      if (target instanceof Node && pickerRef.current?.contains(target)) return
+      setPersonalityOpen(false)
+    }
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') setPersonalityOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [personalityOpen])
 
   async function onFill(): Promise<void> {
     setBusy(true)
     setError('')
     setCandidates([])
+    cancelScheduledFlush()
     try {
-      await persist(memoryRef.current, 'Profile saved on this device.')
+      const saved = await enqueue(() => flushNow('Profile saved on this device.'))
+      if (!saved) return
       const tab = await findApplicationTab()
       if (tab?.id === undefined || !tab.url) {
         setError('Open a Greenhouse or Lever application, or the local demo.')
@@ -137,7 +307,9 @@ export function App() {
   async function onCollect(): Promise<void> {
     setBusy(true)
     setError('')
+    cancelScheduledFlush()
     try {
+      await enqueue(() => flushNow())
       const tab = await findApplicationTab()
       if (tab?.id === undefined) {
         setError('Open a Greenhouse or Lever application, or the local demo.')
@@ -170,10 +342,14 @@ export function App() {
       selected.map((candidate) => ({ question: candidate.question, answer: candidate.answer })),
       { now: Date.now(), host, newId: () => crypto.randomUUID() },
     )
-    await persist({ ...memoryRef.current, answers }, `Saved ${selected.length} answer${selected.length === 1 ? '' : 's'} on this device.`)
+    remember({ ...memoryRef.current, answers })
+    cancelScheduledFlush()
+    await enqueue(() => flushNow(`Saved ${selected.length} answer${selected.length === 1 ? '' : 's'} on this device.`))
     setCandidates([])
   }
 
+  const profile = activeProfile(memory)
+  const personalityName = activePersonality(memory).name
   const hiddenSkips = result?.skipped.filter((item) => item.reason === 'hidden').length ?? 0
   const safetySkips = result?.skipped.filter((item) => item.reason === 'password' || item.reason === 'payment') ?? []
   const leftAlone = result?.skipped.filter((item) => item.reason === 'already-filled').length ?? 0
@@ -181,7 +357,19 @@ export function App() {
   return (
     <div class="app">
       <header>
-        <h1>Localauto</h1>
+        <div class="header-row">
+          <h1>Localauto</h1>
+          <button
+            id="open-settings"
+            type="button"
+            class="secondary"
+            onClick={() => {
+              void browser.runtime.openOptionsPage().catch(() => setError('Could not open settings.'))
+            }}
+          >
+            Settings
+          </button>
+        </div>
         <p>Answers stay on this device. Nothing is sent to an account.</p>
       </header>
 
@@ -197,7 +385,50 @@ export function App() {
       ) : null}
 
       <section class="section">
-        <h2>Profile</h2>
+        <h2>Personality</h2>
+        <div class="picker" ref={pickerRef}>
+          <span id="personality-label">Selected</span>
+          <button
+            id="personality"
+            type="button"
+            class="picker-trigger"
+            aria-haspopup="listbox"
+            aria-expanded={personalityOpen}
+            aria-labelledby="personality-label"
+            disabled={!ready || busy}
+            onClick={() => setPersonalityOpen((open) => !open)}
+          >
+            {personalityName}
+          </button>
+          {personalityOpen ? (
+            <ul class="picker-menu" role="listbox" aria-labelledby="personality-label">
+              {memory.personalities.map((personality) => {
+                const selected = personality.id === memory.activePersonalityId
+                return (
+                  <li key={personality.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      disabled={busy}
+                      onClick={() => {
+                        onPersonality(personality.id)
+                        setPersonalityOpen(false)
+                      }}
+                    >
+                      {personality.name}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
+        </div>
+        <p class="meta">Default is selected until you choose another. Add a name in Settings.</p>
+      </section>
+
+      <section class="section">
+        <h2>Profile · {personalityName}</h2>
         {PROFILE_FIELDS.map(([key, label, placeholder, type]) => (
           <label key={key}>
             {label}
@@ -205,13 +436,21 @@ export function App() {
               id={`profile-${key}`}
               type={type}
               placeholder={placeholder}
-              value={memory.profile[key]}
+              value={profile[key]}
               disabled={!ready || busy}
               onInput={(event) => updateProfile(key, event.currentTarget.value)}
             />
           </label>
         ))}
-        <button type="button" class="secondary" disabled={!ready || busy} onClick={() => void persist(memoryRef.current, 'Profile saved on this device.')}>
+        <button
+          type="button"
+          class="secondary"
+          disabled={!ready || busy}
+          onClick={() => {
+            cancelScheduledFlush()
+            void enqueue(() => flushNow('Profile saved on this device.'))
+          }}
+        >
           Save profile
         </button>
       </section>
@@ -272,15 +511,23 @@ export function App() {
               Skipped {item.reason} field: {item.label || 'unlabeled'}
             </p>
           ))}
-          {leftAlone > 0 ? <p>{leftAlone} field{leftAlone === 1 ? '' : 's'} already had an answer.</p> : null}
-          {hiddenSkips > 0 ? <p>Skipped {hiddenSkips} hidden field{hiddenSkips === 1 ? '' : 's'}.</p> : null}
+          {leftAlone > 0 ? (
+            <p>
+              {leftAlone} field{leftAlone === 1 ? '' : 's'} already had an answer.
+            </p>
+          ) : null}
+          {hiddenSkips > 0 ? (
+            <p>
+              Skipped {hiddenSkips} hidden field{hiddenSkips === 1 ? '' : 's'}.
+            </p>
+          ) : null}
         </section>
       ) : null}
 
       {candidates.length > 0 ? (
         <section class="section">
           <h2>Save answers</h2>
-          <p>Only checked questions are kept.</p>
+          <p>Only checked questions are kept. Saved answers are shared across personalities.</p>
           {candidates.map((candidate, index) => (
             <label class="check" key={`${candidate.frameId}-${candidate.fieldId}`}>
               <input
@@ -302,29 +549,12 @@ export function App() {
           </button>
         </section>
       ) : null}
-
-      <section class="section hosts">
-        <h2>Sites</h2>
-        <p>Runs on Greenhouse, Lever, and the local demo. Other sites stay off.</p>
-        {HOSTS.map((host) => (
-          <label key={host}>
-            <input
-              id={`host-${host}`}
-              type="checkbox"
-              disabled={!ready || busy}
-              checked={memory.enabledHosts[host]}
-              onChange={() => {
-                const next = {
-                  ...memoryRef.current,
-                  enabledHosts: { ...memoryRef.current.enabledHosts, [host]: !memoryRef.current.enabledHosts[host] },
-                }
-                void persist(next, `${hostLabel(host)} ${next.enabledHosts[host] ? 'on' : 'paused'}.`)
-              }}
-            />
-            {hostLabel(host)}
-          </label>
-        ))}
-      </section>
     </div>
   )
 }
+
+function editingProfile(): boolean {
+  const element = document.activeElement
+  return element instanceof HTMLElement && element.id.startsWith('profile-')
+}
+

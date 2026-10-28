@@ -44,6 +44,17 @@ header h1 {
   letter-spacing: -0.02em;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app.wide {
+  max-width: 560px;
+}
+
 header p,
 .section p,
 .meta {
@@ -75,7 +86,8 @@ label {
 input[type='text'],
 input[type='email'],
 input[type='tel'],
-input[type='url'] {
+input[type='url'],
+select {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -107,7 +119,8 @@ button:disabled {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -167,6 +180,93 @@ input:focus-visible {
   align-items: center;
 }
 
+.meta.inline {
+  margin: 0;
+}
+
+.personality-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+
+.personality-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .value {
   overflow-wrap: anywhere;
+}
+
+.picker {
+  margin-bottom: 8px;
+}
+
+#personality-label {
+  display: block;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.picker-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.picker-trigger::after {
+  content: '';
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+  transform: translateY(2px);
+}
+
+.picker-trigger[aria-expanded='true']::after {
+  transform: translateY(-2px) rotate(180deg);
+}
+
+.picker-menu {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.picker-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.picker-menu button[aria-selected='true'] {
+  background: #e7f3ec;
 }

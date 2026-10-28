@@ -1,8 +1,31 @@
 import { describe, expect, test } from 'vitest'
-import { createMemoryStore, emptyMemory, rememberAnswers, type SavedAnswer } from '../memory'
+import {
+  addPersonality,
+  createMemoryStore,
+  emptyMemory,
+  emptyProfile,
+  PERSONALITY_LIMIT,
+  rememberAnswers,
+  removePersonality,
+  selectPersonality,
+  writeActiveProfile,
+  type SavedAnswer,
+} from '../memory'
 
 describe('memory store', () => {
-  test('round-trips a profile, answers, and a paused host', async () => {
+  test('starts on Default and keeps Personal, Work, and Software engineer', () => {
+    const state = emptyMemory()
+    expect(state.activePersonalityId).toBe('default')
+    expect(state.personalities.map((personality) => personality.name)).toEqual([
+      'Default',
+      'Personal',
+      'Work',
+      'Software engineer',
+    ])
+    expect(state.listenForSubmit).toBe(true)
+  })
+
+  test('round-trips personalities, answers, a paused host, and the submit listener', async () => {
     const saved: { value: unknown } = { value: undefined }
     const store = createMemoryStore({
       async read() {
@@ -12,30 +35,58 @@ describe('memory store', () => {
         saved.value = value
       },
     })
+    const state = selectPersonality(emptyMemory(), 'work')
+    const withProfile = writeActiveProfile(state, {
+      ...emptyProfile(),
+      fullName: 'Ada Lovelace',
+      email: 'ada@example.com',
+    })
     await store.save({
-      profile: {
-        fullName: 'Ada Lovelace',
-        email: 'ada@example.com',
-        phone: '555',
-        linkedin: 'https://linkedin.com/in/ada',
-        github: '',
-        website: '',
-      },
+      ...withProfile,
       answers: [{ id: 'a', question: 'Why?', answer: 'Because.', savedAt: 3, host: 'jobs.lever.co' }],
       enabledHosts: { greenhouse: true, lever: false, demo: true },
+      listenForSubmit: false,
     })
     await expect(store.load()).resolves.toEqual({
-      profile: {
-        fullName: 'Ada Lovelace',
-        email: 'ada@example.com',
-        phone: '555',
-        linkedin: 'https://linkedin.com/in/ada',
-        github: '',
-        website: '',
-      },
+      ...withProfile,
       answers: [{ id: 'a', question: 'Why?', answer: 'Because.', savedAt: 3, host: 'jobs.lever.co' }],
       enabledHosts: { greenhouse: true, lever: false, demo: true },
+      listenForSubmit: false,
     })
+  })
+
+  test('an older profile becomes the Default personality', async () => {
+    const store = createMemoryStore({
+      async read() {
+        return {
+          profile: {
+            fullName: 'Ada Lovelace',
+            email: 'ada@example.com',
+            phone: '',
+            linkedin: '',
+            github: '',
+            website: '',
+          },
+          answers: [],
+          enabledHosts: { greenhouse: true, lever: true, demo: true },
+        }
+      },
+      async write() {
+        throw new Error('unused')
+      },
+    })
+    const loaded = await store.load()
+    expect(loaded.activePersonalityId).toBe('default')
+    expect(loaded.personalities.find((personality) => personality.id === 'default')?.profile).toMatchObject({
+      fullName: 'Ada Lovelace',
+      email: 'ada@example.com',
+    })
+    expect(loaded.personalities.map((personality) => personality.id)).toEqual([
+      'default',
+      'personal',
+      'work',
+      'software-engineer',
+    ])
   })
 
   test('garbage in storage loads as empty memory', async () => {
@@ -48,6 +99,50 @@ describe('memory store', () => {
       },
     })
     await expect(store.load()).resolves.toEqual(emptyMemory())
+  })
+
+  test('a removed preset stays removed', async () => {
+    const saved: { value: unknown } = { value: undefined }
+    const store = createMemoryStore({
+      async read() {
+        return saved.value
+      },
+      async write(value) {
+        saved.value = value
+      },
+    })
+    await store.save(removePersonality(emptyMemory(), 'work'))
+    const loaded = await store.load()
+    expect(loaded.personalities.some((personality) => personality.id === 'work')).toBe(false)
+    expect(loaded.activePersonalityId).toBe('default')
+  })
+})
+
+describe('personalities', () => {
+  test('selects an existing name, writes only the active profile, and keeps Default', () => {
+    const selected = addPersonality(emptyMemory(), 'work')
+    expect(selected.activePersonalityId).toBe('work')
+    expect(selected.personalities).toHaveLength(4)
+
+    const written = writeActiveProfile(selected, { ...emptyProfile(), email: 'ada@work.example' })
+    expect(written.personalities.find((personality) => personality.id === 'work')?.profile.email).toBe('ada@work.example')
+    expect(written.personalities.find((personality) => personality.id === 'default')?.profile.email).toBe('')
+
+    const removed = removePersonality(written, 'work')
+    expect(removed.activePersonalityId).toBe('default')
+    expect(removed.personalities.some((personality) => personality.id === 'work')).toBe(false)
+    expect(removePersonality(removed, 'default')).toBe(removed)
+  })
+
+  test('adds a custom personality and stops at the limit', () => {
+    const added = addPersonality(emptyMemory(), 'Campus recruiting')
+    expect(added.activePersonalityId).toBe('campus-recruiting')
+    expect(added.personalities.at(-1)?.name).toBe('Campus recruiting')
+
+    let state = emptyMemory()
+    for (let index = 0; index < 20; index += 1) state = addPersonality(state, `Extra ${index}`)
+    expect(state.personalities).toHaveLength(PERSONALITY_LIMIT)
+    expect(addPersonality(state, 'One more')).toBe(state)
   })
 })
 

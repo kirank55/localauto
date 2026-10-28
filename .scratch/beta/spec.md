@@ -50,18 +50,23 @@ Localauto is a Chrome extension. The person keeps a profile and confirms the ans
 34. As an applicant, I want a repeated question to update the saved answer rather than stack duplicates, so that a correction replaces the old one.
 35. As an applicant, I want answer history capped, so that a few hundred answers do not grow without bound.
 36. As a developer, I want a local demo of Greenhouse, Lever, a paraphrased second form, and an iframe, so that I can try the beta without an employer account.
+37. As an applicant, I want Default selected until I choose another personality, so that Fill uses a profile I recognize.
+38. As an applicant, I want Personal, Work, Software engineer, and names I add, so that each keeps its own name, email, phone, and links.
+39. As an applicant, I want that choice above the profile form, so that I can see which personality I am about to save.
+40. As an applicant, I want a settings page, so that I can add or remove personalities, pause a site, and turn the submit listener on or off.
+41. As an applicant, I want a submit to open the side panel with profile details filled in, so that I can press Save profile.
 
 ## Implementation Decisions
 
 - The product surface is one deep module: given a document, a profile, and saved answers, fill empty visible fields, list suggestions, accept one, and collect questions worth saving. Chrome is an adapter around that module.
-- Manifest V3, WXT, TypeScript, and Preact. The side panel is the only UI. Clicking the toolbar opens it.
+- Manifest V3, WXT, TypeScript, and Preact. The side panel is where a person fills and reviews. A settings page holds personalities, site pauses, and the submit listener. Clicking the toolbar opens the side panel.
 - Profile slots are recognized from input type, autocomplete, name, id, and a short label. Order is email, phone, LinkedIn, GitHub, website, first name, last name, full name. A full name splits on the first space. Radios, checkboxes, and selects are never profile slots.
 - Exact reuse compares a canonical question: lowercase, accents removed, punctuation collapsed, dotted forms like "U.S." expanded. The newest saved answer wins.
 - A suggestion requires equal country sets, equal number sets, the same yes/no-ness, and at least one shared significant word. Countries come from a phrase list. Bare "us" counts only in phrases like "the us", "u.s.", "usa", and "united states". One suggestion per question.
 - Fill writes with the platform value setter and dispatches `input` and `change`. Selects and radios match the visible choice. Accept may overwrite. Fill itself does not.
 - Hidden, password, and payment controls are skipped. Disabled and read-only controls are skipped. File, button, and date controls are ignored.
 - Application hosts are `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `localhost`, and `127.0.0.1`. Each can be paused. Content scripts run in all frames. Frames report their own results so the extension does not request browsing-history permissions.
-- The stored shape is a profile, a list of saved answers (id, question, answer, time, host), and a boolean per application host. Parsing drops malformed entries. Confirm-save replaces a canonical question and keeps at most 300 answers.
+- The stored shape is a list of personalities (id, name, profile), the selected personality id, a list of saved answers (id, question, answer, time, host), a boolean per application host, and whether submits offer profile details. Default is selected when an older profile is migrated. Parsing drops malformed entries. Confirm-save replaces a canonical question and keeps at most 300 answers. A pending submit offer lives in session storage until the panel applies it. It is not written into the personality until Save profile.
 - A local demo server serves fixture forms that the tests also load.
 
 ## Testing Decisions
@@ -73,7 +78,9 @@ Seams:
 - `fillDocument` catches profile fill, skips, exact reuse, suggestions, pause, and unknown hosts. It misses Chrome messaging.
 - `acceptSuggestion` catches applying a suggestion.
 - `collectSaveCandidates` and `rememberAnswers` catch confirm-save, including the cross-form learning loop.
-- `createMemoryStore` catches persistence parsing. The Chrome adapter is glue.
+- `createMemoryStore` catches persistence parsing, including an older profile becoming the Default personality. The Chrome adapter is glue.
+- `profileFromForm` catches which profile slots a submit offers. Password, payment, and custom questions stay out. A first and last name join into the full name.
+- `mergeSubmitOffer` writes only the offered keys onto the selected personality and leaves the rest.
 - `mergeFrameFills` catches an iframe plus a top document.
 
 Prior art: none. This repo started from `PLAN.md`.
@@ -82,7 +89,7 @@ The Chrome wiring is checked by loading the built extension against the demo, no
 
 ## Out of Scope
 
-Embeddings, paraphrase reuse beyond the slot rules, `<all_urls>`, arbitrary site opt-in, Workday, LinkedIn Easy Apply, Ashby, Indeed, Comeet, automatic submit detection, silent capture, a popup review list, Dexie, and an offscreen document.
+Embeddings, paraphrase reuse beyond the slot rules, `<all_urls>`, arbitrary site opt-in, Workday, LinkedIn Easy Apply, Ashby, Indeed, Comeet, silent save on submit, a popup review list, Dexie, and an offscreen document. The submit demo opens the side panel with profile details filled in. It does not write the personality until Save profile.
 
 ## Further Notes
 

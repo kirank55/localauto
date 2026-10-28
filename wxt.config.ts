@@ -22,4 +22,7 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact()],
   }),
+  webExt: {
+    disabled: process.env.LOCALAUTO_TRY === '1',
+  },
 })

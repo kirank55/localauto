@@ -15,11 +15,18 @@ export function memory(partial: {
   profile?: Partial<Profile>
   answers?: SavedAnswer[]
   enabledHosts?: Partial<MemoryState['enabledHosts']>
+  listenForSubmit?: boolean
 } = {}): MemoryState {
+  const base = emptyMemory()
+  const profile = { ...emptyProfile(), ...partial.profile }
   return {
-    profile: { ...emptyProfile(), ...partial.profile },
+    ...base,
+    personalities: base.personalities.map((personality) =>
+      personality.id === 'default' ? { ...personality, profile } : personality,
+    ),
     answers: partial.answers ?? [],
-    enabledHosts: { ...emptyMemory().enabledHosts, ...partial.enabledHosts },
+    enabledHosts: { ...base.enabledHosts, ...partial.enabledHosts },
+    listenForSubmit: partial.listenForSubmit ?? base.listenForSubmit,
   }
 }
 

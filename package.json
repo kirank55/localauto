@@ -17,6 +17,7 @@
     "lint:boundaries": "depcruise --config .dependency-cruiser.cjs entrypoints src/packages",
     "check": "npm run typecheck && npm run lint:boundaries && npm run test",
     "demo": "node demo/serve.mjs",
+    "try": "node e2e/try.mjs",
     "icons": "node scripts/render-icons.mjs",
     "test:e2e": "npm run build && node e2e/smoke.mjs"
   },

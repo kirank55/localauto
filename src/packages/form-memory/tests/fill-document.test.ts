@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { acceptSuggestion, collectSaveCandidates, fillDocument, mergeFrameFills, rememberAnswers } from '../index'
+import { addPersonality, emptyProfile, writeActiveProfile } from '../memory'
 import { ada, loadDemo, memory, mount, radioValue, saved, textField } from './fixtures'
 
 describe('profile fill', () => {
@@ -34,6 +35,24 @@ describe('profile fill', () => {
 
     expect(textField(doc, 'name').value).toBe('Ada Lovelace')
     expect(textField(doc, 'portfolio').value).toBe('https://ada.example')
+  })
+
+  test('fills the personality selected above the profile', () => {
+    const selected = writeActiveProfile(addPersonality(memory({ profile: ada }), 'Campus'), {
+      ...emptyProfile(),
+      fullName: 'Grace Hopper',
+      email: 'grace@navy.example',
+      phone: '555-010-9999',
+      linkedin: '',
+      github: '',
+      website: '',
+    })
+    const doc = loadDemo('lever.html')
+    fillDocument(doc, selected, 'jobs.lever.co')
+
+    expect(textField(doc, 'name').value).toBe('Grace Hopper')
+    expect(textField(doc, 'email').value).toBe('grace@navy.example')
+    expect(textField(doc, 'phone').value).toBe('555-010-9999')
   })
 
   test('leaves last name empty when the profile has one name', () => {

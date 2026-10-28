@@ -84,3 +84,18 @@ iframe {
 a {
   color: #1f6b4a;
 }
+
+button {
+  width: fit-content;
+  font: 16px/1.4 "Segoe UI", system-ui, sans-serif;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #1f6b4a;
+  color: #f7fffb;
+  cursor: pointer;
+}
+
+#submit-demo-status {
+  margin-top: 16px;
+}

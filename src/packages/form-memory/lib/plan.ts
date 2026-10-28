@@ -1,4 +1,4 @@
-import type { MemoryState, SavedAnswer } from '../memory'
+import { activeProfile, type MemoryState, type SavedAnswer } from '../memory'
 import type { SkippedField, Suggestion } from '../model'
 import { applyField } from './apply'
 import { matchProfileSlot, slotDetail, valueForSlot } from './profile-slot'
@@ -34,7 +34,7 @@ export function planAndApply(
 
     const slot = matchProfileSlot(field)
     if (slot) {
-      const value = valueForSlot(state.profile, slot)
+      const value = valueForSlot(activeProfile(state), slot)
       if (value && applyField(field, value)) {
         applied.push({ label: field.label || label, value, via: 'profile', detail: slotDetail(slot) })
       }
