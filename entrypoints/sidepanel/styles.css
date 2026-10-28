@@ -199,6 +199,29 @@ select:focus-visible {
   border-top: 1px solid var(--line);
 }
 
+.profile-fields {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 0;
+}
+
+.profile-fields div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.profile-fields dt,
+.profile-fields dd {
+  margin: 0;
+}
+
+.profile-fields dt {
+  color: var(--muted);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

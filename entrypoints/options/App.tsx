@@ -4,6 +4,7 @@ import { createChromeSubmitOffer } from '../../src/packages/form-memory/chrome-s
 import { hostLabel, type HostKey } from '../../src/packages/form-memory/hosts'
 import {
   activePersonality,
+  activeProfile,
   addPersonality,
   DEFAULT_PERSONALITY_ID,
   emptyMemory,
@@ -13,9 +14,19 @@ import {
   selectPersonality,
   STARTER_PERSONALITIES,
   type MemoryState,
+  type Profile,
 } from '../../src/packages/form-memory/memory'
 
 const HOSTS: readonly HostKey[] = ['greenhouse', 'lever', 'demo']
+
+const PROFILE_FIELDS: readonly (readonly [keyof Profile, string])[] = [
+  ['fullName', 'Full name'],
+  ['email', 'Email'],
+  ['phone', 'Phone'],
+  ['linkedin', 'LinkedIn'],
+  ['github', 'GitHub'],
+  ['website', 'Website'],
+]
 
 export function App() {
   const [memory, setMemory] = useState<MemoryState>(emptyMemory())
@@ -125,7 +136,7 @@ export function App() {
     <div class="app wide">
       <header>
         <h1>Settings</h1>
-        <p>Personalities, sites, and the submit listener stay on this device.</p>
+        <p>The profile you save, personalities, sites, and the submit listener stay on this device.</p>
       </header>
 
       {notice ? (
@@ -202,6 +213,26 @@ export function App() {
           </div>
         ) : null}
       </section>
+
+      {ready ? (
+        <section class="section" id="saved-profile">
+          <h2>Saved profile</h2>
+          <p>{activePersonality(memory).name} keeps this name, email, phone, and these links on this device.</p>
+          <dl class="profile-fields">
+            {PROFILE_FIELDS.map(([key, label]) => {
+              const value = activeProfile(memory)[key]
+              return (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd id={`saved-${key}`} class={value ? 'value' : 'meta'}>
+                    {value || 'Not saved'}
+                  </dd>
+                </div>
+              )
+            })}
+          </dl>
+        </section>
+      ) : null}
 
       <section class="section hosts">
         <h2>Sites</h2>
