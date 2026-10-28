@@ -434,72 +434,73 @@ export function App() {
       ) : null}
 
       <section class="section">
-        <h2>Personality</h2>
-        <div class="picker" ref={pickerRef}>
-          <span id="personality-label">Selected</span>
-          <button
-            id="personality"
-            type="button"
-            class="picker-trigger"
-            aria-haspopup="listbox"
-            aria-expanded={personalityOpen}
-            aria-labelledby="personality-label"
-            disabled={!ready || busy}
-            onClick={() => setPersonalityOpen((open) => !open)}
-          >
-            {personalityName}
-          </button>
-          {personalityOpen ? (
-            <ul class="picker-menu" role="listbox" aria-labelledby="personality-label">
-              {memory.personalities.map((personality) => {
-                const selected = personality.id === memory.activePersonalityId
-                return (
-                  <li key={personality.id}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      disabled={busy}
-                      onClick={() => {
-                        onPersonality(personality.id)
-                        setPersonalityOpen(false)
-                      }}
-                    >
-                      {personality.name}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          ) : null}
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            onCreateProfile(profileName)
-          }}
-        >
-          <label>
-            New profile
-            <input
-              id="new-profile-name"
-              type="text"
-              value={profileName}
-              placeholder="Contractor"
-              autoComplete="off"
+        <div class="section-row">
+          <h2>Profile</h2>
+          <div class="picker" ref={pickerRef}>
+            <button
+              id="personality"
+              type="button"
+              class="secondary picker-trigger"
+              aria-haspopup="listbox"
+              aria-expanded={personalityOpen}
+              aria-controls="personality-menu"
+              aria-label={`Personality, ${personalityName}`}
               disabled={!ready || busy}
-              onInput={(event) => setProfileName(event.currentTarget.value)}
-            />
-          </label>
-          <button id="create-profile" type="submit" disabled={!ready || busy || !profileName.trim()}>
-            Create profile
-          </button>
-        </form>
-        <p class="meta">Default is selected until you choose another. Delete a profile in Settings.</p>
-      </section>
-
-      <section class="section">
-        <h2>Profile · {personalityName}</h2>
+              onClick={() => setPersonalityOpen((open) => !open)}
+            >
+              <span>{personalityName}</span>
+            </button>
+            {personalityOpen ? (
+              <div class="picker-panel">
+                <ul id="personality-menu" class="picker-menu" role="listbox" aria-label="Personality">
+                  {memory.personalities.map((personality) => {
+                    const selected = personality.id === memory.activePersonalityId
+                    return (
+                      <li key={personality.id}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          disabled={busy}
+                          onClick={() => {
+                            onPersonality(personality.id)
+                            setPersonalityOpen(false)
+                          }}
+                        >
+                          {personality.name}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <form
+                  class="picker-create"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    onCreateProfile(profileName)
+                  }}
+                >
+                  <label>
+                    New profile
+                    <input
+                      id="new-profile-name"
+                      type="text"
+                      value={profileName}
+                      placeholder="Contractor"
+                      autoComplete="off"
+                      disabled={!ready || busy}
+                      onInput={(event) => setProfileName(event.currentTarget.value)}
+                    />
+                  </label>
+                  <button id="create-profile" type="submit" disabled={!ready || busy || !profileName.trim()}>
+                    Create profile
+                  </button>
+                  <p class="meta">Delete a profile in Settings.</p>
+                </form>
+              </div>
+            ) : null}
+          </div>
+        </div>
         {PROFILE_FIELDS.map(([key, label, placeholder, type]) => (
           <label key={key}>
             {label}
