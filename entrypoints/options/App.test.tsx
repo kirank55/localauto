@@ -118,3 +118,43 @@ test('settings updates when a profile is saved on this device', async () => {
   expect(document.getElementById('saved-email')?.textContent).toBe('grace@example.com')
   expect(document.getElementById('saved-profile')?.textContent).toContain('Personal')
 })
+
+test('settings lists saved answers newest first, deletes one, and deletes all after a confirm', async () => {
+  stored = {
+    ...emptyMemory(),
+    answers: [
+      { id: 'why', question: 'Why do you want this role?', answer: 'Local tools.', savedAt: 1, host: 'jobs.lever.co' },
+      { id: 'move', question: 'Are you open to relocation?', answer: 'No', savedAt: 2, host: 'job-boards.greenhouse.io' },
+      { id: 'years', question: 'Years of Python experience', answer: '5', savedAt: 3, host: 'jobs.lever.co' },
+    ],
+  }
+  installBrowser()
+  mount()
+  await waitForText('delete-answer-why', 'Delete')
+
+  const questions = () => [...document.querySelectorAll('#saved-answers .q')].map((item) => item.textContent)
+  expect(questions()).toEqual(['Years of Python experience', 'Are you open to relocation?', 'Why do you want this role?'])
+  expect(document.querySelector('#saved-answers .meta')?.textContent).toContain('jobs.lever.co')
+
+  document.getElementById('delete-answer-move')?.click()
+  await until(() => stored.answers.length === 2)
+  expect(stored.answers.map((answer) => answer.id)).toEqual(['why', 'years'])
+  await until(() => questions().length === 2)
+
+  document.getElementById('clear-answers')?.click()
+  const confirm = await until(() => document.getElementById('confirm-clear-answers'))
+  expect(stored.answers).toHaveLength(2)
+  confirm.click()
+  await until(() => stored.answers.length === 0)
+  await until(() => document.body.textContent?.includes('No saved answers yet.'))
+})
+
+async function until<T>(read: () => T | null | undefined | false): Promise<T> {
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    const value = read()
+    if (value) return value
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('condition was not met')
+}

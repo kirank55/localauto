@@ -3,6 +3,7 @@ import { applyField } from './lib/apply'
 import { planAndApply } from './lib/plan'
 import { matchProfileSlot } from './lib/profile-slot'
 import { readFields } from './lib/read-fields'
+import { sameQuestion } from './lib/text'
 import type { MemoryState } from './memory'
 import type { FillOutcome, FrameFill, MergedFill, SaveCandidate } from './model'
 
@@ -28,9 +29,10 @@ export function fillDocument(document: Document, state: MemoryState, hostname: s
   return { status: 'filled', host, report: planned }
 }
 
-export function acceptSuggestion(document: Document, fieldId: string, value: string): boolean {
+/** Applies a suggestion only while the field still asks the question it was offered for. The page may have moved on. */
+export function acceptSuggestion(document: Document, fieldId: string, value: string, question: string): boolean {
   const field = readFields(document).find((item) => item.id === fieldId)
-  if (!field || field.skip) return false
+  if (!field || field.skip || !sameQuestion(field.label, question)) return false
   return applyField(field, value)
 }
 

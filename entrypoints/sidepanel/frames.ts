@@ -4,8 +4,10 @@ import { isExtensionRequest, readFrameResult, type FrameResult } from '../../src
 
 type PanelRequest =
   | { type: 'localauto:fill' }
-  | { type: 'localauto:accept'; fieldId: string; value: string; frameId: number }
+  | { type: 'localauto:accept'; fieldId: string; value: string; question: string; frameId: number }
   | { type: 'localauto:collect' }
+
+type ScriptFiles = NonNullable<Parameters<typeof browser.scripting.executeScript>[0]['files']>
 
 const QUIET_MS = 400
 const MAX_MS = 3000
@@ -80,8 +82,35 @@ export async function requestFrames(tabId: number, message: PanelRequest): Promi
     browser.runtime.onMessage.addListener(onMessage)
     // The content script answers with its own message after reading storage.
     // sendMessage resolves as soon as the listener returns, which is before that reply.
-    void browser.tabs.sendMessage(tabId, payload).catch(() => undefined)
+    // It rejects at once when no frame in the tab has a listener, so there is nothing to wait for.
+    void browser.tabs.sendMessage(tabId, payload).catch((error: unknown) => {
+      if (String(error).includes('Receiving end does not exist')) finish()
+    })
   })
 
   return results
+}
+
+/**
+ * Chrome does not add content scripts to tabs that were open before Localauto was installed or updated.
+ * Run the manifest's scripts in that tab so Fill works without a reload. False when the page refuses,
+ * as chrome:// pages and the Web Store do.
+ */
+export async function injectContentScripts(tabId: number): Promise<boolean> {
+  try {
+    const scripts = browser.runtime.getManifest().content_scripts ?? []
+    for (const script of scripts) {
+      const files = script.js ?? []
+      if (files.length === 0) continue
+      const world = (script as { world?: string }).world === 'MAIN' ? 'MAIN' : 'ISOLATED'
+      await browser.scripting.executeScript({
+        target: { tabId, allFrames: script.all_frames === true },
+        files: files as ScriptFiles,
+        world,
+      })
+    }
+    return scripts.length > 0
+  } catch {
+    return false
+  }
 }

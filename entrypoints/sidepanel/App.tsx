@@ -18,9 +18,12 @@ import {
 } from '../../src/packages/form-memory/memory'
 import type { SaveCandidate } from '../../src/packages/form-memory/model'
 import { mergeSubmitOffer, parseSubmitOffer, type SubmitOffer } from '../../src/packages/form-memory/submit'
-import { applicationHeading, findApplicationTab, requestFrames } from './frames'
+import { applicationHeading, findApplicationTab, injectContentScripts, requestFrames } from './frames'
 
 type CandidateRow = SaveCandidate & { frameId: number; checked: boolean }
+type PanelRequest = Parameters<typeof requestFrames>[1]
+/** The tab and page that the results on screen came from. Accept and Keep act on it, wherever the person is now. */
+type ResultPage = { tabId: number; url: string; title: string; host: string }
 
 const PROFILE_FIELDS: readonly (readonly [keyof Profile, string, string, string])[] = [
   ['fullName', 'Full name', 'Ada Lovelace', 'text'],
@@ -43,6 +46,10 @@ export function App() {
   const [ready, setReady] = useState(false)
   const [personalityOpen, setPersonalityOpen] = useState(false)
   const [profileName, setProfileName] = useState('')
+  const [profileFormOpen, setProfileFormOpen] = useState(true)
+  const [pageTabId, setPageTabId] = useState<number | null>(null)
+  const [resultPage, setResultPage] = useState<ResultPage | null>(null)
+  const resultPageRef = useRef<ResultPage | null>(null)
   const memoryRef = useRef(memory)
   const pickerRef = useRef<HTMLDivElement>(null)
   const readyRef = useRef(false)
@@ -83,13 +90,11 @@ export function App() {
       if (!activeGone) {
         next = writeActiveProfile(selectPersonality(stored, draft.activePersonalityId), activeProfile(draft))
       }
-      next = { ...next, answers: draft.answers }
       await createChromeMemoryStore().save(next)
       const latest = memoryRef.current
       const unchanged =
         latest.activePersonalityId === draft.activePersonalityId &&
-        JSON.stringify(activeProfile(latest)) === JSON.stringify(activeProfile(draft)) &&
-        JSON.stringify(latest.answers) === JSON.stringify(draft.answers)
+        JSON.stringify(activeProfile(latest)) === JSON.stringify(activeProfile(draft))
       if (activeGone || unchanged) {
         memoryRef.current = next
         setMemory(next)
@@ -140,7 +145,7 @@ export function App() {
         }
         const created = addPersonality(base, name)
         if (created === base) {
-          await createChromeMemoryStore().save({ ...base, answers: previous.answers })
+          await createChromeMemoryStore().save(base)
           setNotice('')
           setError(
             base.personalities.length >= PERSONALITY_LIMIT
@@ -150,11 +155,12 @@ export function App() {
           return
         }
         const added = created.personalities.length > base.personalities.length
-        const next = { ...created, answers: previous.answers }
+        const next = created
         await createChromeMemoryStore().save(next)
         remember(next)
         setProfileName('')
         setPersonalityOpen(false)
+        setProfileFormOpen(isEmptyProfile(activeProfile(next)))
         setError('')
         setNotice(added ? `${activePersonality(next).name} created.` : `${activePersonality(next).name} selected.`)
       } catch {
@@ -168,6 +174,7 @@ export function App() {
     const switched = selectPersonality(previous, id)
     if (switched.activePersonalityId === previous.activePersonalityId) return
     remember(switched)
+    setProfileFormOpen(isEmptyProfile(activeProfile(switched)))
     cancelScheduledFlush()
     void enqueue(async () => {
       if (!readyRef.current) return
@@ -182,7 +189,7 @@ export function App() {
           setError('That personality is no longer on this device.')
           return
         }
-        next = { ...selectPersonality(next, id), answers: previous.answers }
+        next = selectPersonality(next, id)
         await createChromeMemoryStore().save(next)
         if (memoryRef.current.activePersonalityId === id) remember(next)
         setError('')
@@ -204,6 +211,7 @@ export function App() {
     const next = mergeSubmitOffer(memoryRef.current, profile)
     memoryRef.current = next
     setMemory(next)
+    setProfileFormOpen(true)
     setNotice('Details from the form are in the profile. Save profile to keep them.')
     setError('')
     void createChromeSubmitOffer().clear()
@@ -223,6 +231,7 @@ export function App() {
         memoryRef.current = next
         readyRef.current = true
         setMemory(next)
+        setProfileFormOpen(Boolean(profile) || isEmptyProfile(activeProfile(next)))
         setReady(true)
         if (profile) {
           setNotice('Details from the form are in the profile. Save profile to keep them.')
@@ -246,10 +255,16 @@ export function App() {
         return
       }
       if (area !== 'local') return
-      if (MEMORY_STORAGE_KEY in changes && !editingProfile()) {
+      if (MEMORY_STORAGE_KEY in changes) {
         const next = parseMemoryState(changes[MEMORY_STORAGE_KEY]?.newValue)
-        memoryRef.current = next
-        setMemory(next)
+        const local = memoryRef.current
+        const keepTyping =
+          editingProfile() && next.personalities.some((personality) => personality.id === local.activePersonalityId)
+        const merged = keepTyping
+          ? writeActiveProfile(selectPersonality(next, local.activePersonalityId), activeProfile(local))
+          : next
+        memoryRef.current = merged
+        setMemory(merged)
       }
     }
 
@@ -270,13 +285,35 @@ export function App() {
 
   useEffect(() => {
     let active = true
-    void findApplicationTab()
-      .then((tab) => {
-        if (active) showApplication(tab)
-      })
-      .catch(() => undefined)
+    function refresh(): void {
+      void findApplicationTab()
+        .then((tab) => {
+          if (!active) return
+          showApplication(tab)
+        })
+        .catch(() => undefined)
+    }
+    // Results belong to the page they came from. Switching tabs keeps them. That tab leaving the page drops them.
+    function onUpdated(tabId: number, change: { url?: string; title?: string; status?: string }): void {
+      const owner = resultPageRef.current
+      if (owner && tabId === owner.tabId && change.url !== undefined && withoutFragment(change.url) !== owner.url) {
+        clearResults()
+      }
+      if (change.url !== undefined || change.title !== undefined || change.status === 'complete') refresh()
+    }
+    function onRemoved(tabId: number): void {
+      if (resultPageRef.current?.tabId === tabId) clearResults()
+      refresh()
+    }
+    refresh()
+    browser.tabs?.onActivated?.addListener(refresh)
+    browser.tabs?.onUpdated?.addListener(onUpdated)
+    browser.tabs?.onRemoved?.addListener(onRemoved)
     return () => {
       active = false
+      browser.tabs?.onActivated?.removeListener(refresh)
+      browser.tabs?.onUpdated?.removeListener(onUpdated)
+      browser.tabs?.onRemoved?.removeListener(onRemoved)
     }
   }, [])
 
@@ -314,7 +351,8 @@ export function App() {
         return
       }
       showApplication(tab)
-      const frames = await requestFrames(tab.id, { type: 'localauto:fill' })
+      const frames = await askFrames(tab.id, { type: 'localauto:fill' })
+      ownResults(tab)
       const outcomes = frames.filter((frame) => frame.kind === 'fill').map((frame) => ({ frameId: frame.frameId, outcome: frame.outcome }))
       if (outcomes.length === 0) {
         setResult(null)
@@ -342,15 +380,16 @@ export function App() {
   async function onAccept(frameId: number, fieldId: string, value: string, label: string): Promise<void> {
     setBusy(true)
     try {
-      const tab = await findApplicationTab()
-      if (tab?.id === undefined) {
-        setError('The application tab is gone.')
+      const owner = resultPageRef.current
+      if (!owner) {
+        setResult(null)
+        setError('The page changed. Fill again to see suggestions for it.')
         return
       }
-      const frames = await requestFrames(tab.id, { type: 'localauto:accept', frameId, fieldId, value })
+      const frames = await requestFrames(owner.tabId, { type: 'localauto:accept', frameId, fieldId, value, question: label })
       const applied = frames.some((frame) => frame.kind === 'accept' && frame.applied)
       if (!applied) {
-        setError('Could not apply that suggestion.')
+        setError('Could not apply that suggestion. The question may have changed, or the answer is not one of its choices.')
         return
       }
       setResult((current) => {
@@ -381,14 +420,21 @@ export function App() {
         return
       }
       showApplication(tab)
-      const frames = await requestFrames(tab.id, { type: 'localauto:collect' })
+      const frames = await askFrames(tab.id, { type: 'localauto:collect' })
+      ownResults(tab)
       const rows: CandidateRow[] = []
       for (const frame of frames) {
         if (frame.kind !== 'collect') continue
         for (const candidate of frame.candidates) rows.push({ ...candidate, frameId: frame.frameId, checked: true })
       }
       setCandidates(rows)
+      if (frames.length === 0) {
+        setError('Localauto cannot read this page. Reload it and try again.')
+        return
+      }
       setNotice(rows.length === 0 ? 'No answered questions on this page yet.' : `Found ${rows.length} answered question${rows.length === 1 ? '' : 's'}.`)
+    } catch {
+      setError('Review failed. Reload the page and try again.')
     } finally {
       setBusy(false)
     }
@@ -400,23 +446,68 @@ export function App() {
       setError('Choose at least one answer to keep.')
       return
     }
-    const tab = await findApplicationTab()
-    const host = tab?.url ? new URL(tab.url).hostname : 'device'
-    const answers = rememberAnswers(
-      memoryRef.current.answers,
-      selected.map((candidate) => ({ question: candidate.question, answer: candidate.answer })),
-      { now: Date.now(), host, newId: () => crypto.randomUUID() },
-    )
-    remember({ ...memoryRef.current, answers })
+    const host = resultPageRef.current?.host || 'device'
     cancelScheduledFlush()
-    await enqueue(() => flushNow(`Saved ${selected.length} answer${selected.length === 1 ? '' : 's'} on this device.`))
-    setCandidates([])
+    await enqueue(async () => {
+      if (!(await flushNow())) return
+      try {
+        const stored = await createChromeMemoryStore().load()
+        const answers = rememberAnswers(
+          stored.answers,
+          selected.map((candidate) => ({ question: candidate.question, answer: candidate.answer })),
+          { now: Date.now(), host, newId: () => crypto.randomUUID() },
+        )
+        await createChromeMemoryStore().save({ ...stored, answers })
+        remember({ ...memoryRef.current, answers })
+        setCandidates([])
+        setError('')
+        setNotice(`Saved ${selected.length} answer${selected.length === 1 ? '' : 's'} on this device.`)
+      } catch {
+        setError('Could not save on this device.')
+      }
+    })
   }
 
-  function showApplication(tab: { title?: string; url?: string } | null | undefined): void {
+  async function askFrames(tabId: number, message: PanelRequest) {
+    const frames = await requestFrames(tabId, message)
+    if (frames.length > 0) return frames
+    if (!(await injectContentScripts(tabId))) return frames
+    return requestFrames(tabId, message)
+  }
+
+  function showApplication(tab: { id?: number; title?: string; url?: string } | null | undefined): void {
     const heading = applicationHeading(tab)
     setPageTitle(heading.title)
     setPageHost(heading.host)
+    setPageTabId(tab?.id ?? null)
+  }
+
+  function ownResults(tab: { id?: number; title?: string; url?: string }): void {
+    if (tab.id === undefined || !tab.url) return
+    let host = ''
+    try {
+      host = new URL(tab.url).hostname
+    } catch {
+      // The tab address is not a URL. The answer is kept without a host.
+    }
+    const owner = { tabId: tab.id, url: withoutFragment(tab.url), title: applicationHeading(tab).title, host }
+    const previous = resultPageRef.current
+    if (previous && (previous.tabId !== owner.tabId || previous.url !== owner.url)) {
+      // A fill or review on another page replaces what is on screen. The caller sets the new results next.
+      setResult(null)
+      setCandidates([])
+    }
+    resultPageRef.current = owner
+    setResultPage(owner)
+  }
+
+  function clearResults(): void {
+    resultPageRef.current = null
+    setResultPage(null)
+    setResult(null)
+    setCandidates([])
+    setNotice('')
+    setError('')
   }
 
   const profile = activeProfile(memory)
@@ -524,30 +615,52 @@ export function App() {
             ) : null}
           </div>
         </div>
-        {PROFILE_FIELDS.map(([key, label, placeholder, type]) => (
-          <label key={key}>
-            {label}
-            <input
-              id={`profile-${key}`}
-              type={type}
-              placeholder={placeholder}
-              value={profile[key]}
+        {profileFormOpen ? (
+          <>
+            {PROFILE_FIELDS.map(([key, label, placeholder, type]) => (
+              <label key={key}>
+                {label}
+                <input
+                  id={`profile-${key}`}
+                  type={type}
+                  placeholder={placeholder}
+                  value={profile[key]}
+                  disabled={!ready || busy}
+                  onInput={(event) => updateProfile(key, event.currentTarget.value)}
+                />
+              </label>
+            ))}
+            <button
+              id="save-profile"
+              type="button"
+              class="secondary"
               disabled={!ready || busy}
-              onInput={(event) => updateProfile(key, event.currentTarget.value)}
-            />
-          </label>
-        ))}
-        <button
-          type="button"
-          class="secondary"
-          disabled={!ready || busy}
-          onClick={() => {
-            cancelScheduledFlush()
-            void enqueue(() => flushNow('Profile saved on this device.'))
-          }}
-        >
-          Save profile
-        </button>
+              onClick={() => {
+                cancelScheduledFlush()
+                void enqueue(async () => {
+                  const saved = await flushNow('Profile saved on this device.')
+                  if (saved && !isEmptyProfile(activeProfile(memoryRef.current))) setProfileFormOpen(false)
+                })
+              }}
+            >
+              Save profile
+            </button>
+          </>
+        ) : (
+          <>
+            <dl class="profile-summary" id="profile-summary">
+              {PROFILE_FIELDS.filter(([key]) => profile[key].trim()).map(([key, label]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd class="value">{profile[key]}</dd>
+                </div>
+              ))}
+            </dl>
+            <button id="edit-profile" type="button" class="secondary" disabled={!ready || busy} onClick={() => setProfileFormOpen(true)}>
+              Edit profile
+            </button>
+          </>
+        )}
       </section>
 
       <section class="section" id="application">
@@ -579,6 +692,11 @@ export function App() {
             <p class="meta">Reads questions you already answered.</p>
           </div>
         </div>
+        {resultPage && pageTabId !== resultPage.tabId && (result || candidates.length > 0) ? (
+          <p class="source" id="result-source">
+            Results below are from <strong>{resultPage.title}</strong>, in another tab.
+          </p>
+        ) : null}
         {candidates.length > 0 ? (
           <>
             <h2 class="list-title">Answers to keep</h2>
@@ -618,7 +736,7 @@ export function App() {
       </section>
 
       {result && result.applied.length > 0 ? (
-        <section class="section">
+        <section class="section" id="filled">
           <h2>Filled</h2>
           {result.applied.map((item, index) => (
             <div class="card" key={`${item.label}-${index}`}>
@@ -631,22 +749,24 @@ export function App() {
       ) : null}
 
       {result && result.suggestions.length > 0 ? (
-        <section class="section">
+        <section class="section" id="suggestions">
           <h2>Suggestions</h2>
           <p>These wordings differ. Nothing is filled until you accept.</p>
           {result.suggestions.map((item, index) => (
             <div class="card" key={`${item.frameId}-${item.fieldId}`}>
               <strong>{item.label}</strong>
               <em>From: {item.sourceQuestion}</em>
-              <span class="value">{item.value}</span>
-              <button
-                type="button"
-                id={`accept-${index}`}
-                disabled={busy}
-                onClick={() => void onAccept(item.frameId, item.fieldId, item.value, item.label)}
-              >
-                Accept
-              </button>
+              <div class="suggest-row">
+                <span class="value">{item.value}</span>
+                <button
+                  type="button"
+                  id={`accept-${index}`}
+                  disabled={busy}
+                  onClick={() => void onAccept(item.frameId, item.fieldId, item.value, item.label)}
+                >
+                  Accept
+                </button>
+              </div>
             </div>
           ))}
         </section>
@@ -680,5 +800,14 @@ export function App() {
 function editingProfile(): boolean {
   const element = document.activeElement
   return element instanceof HTMLElement && element.id.startsWith('profile-')
+}
+
+function isEmptyProfile(profile: Profile): boolean {
+  return Object.values(profile).every((value) => !value.trim())
+}
+
+/** A page address without the fragment, which in-page links change. */
+function withoutFragment(url: string): string {
+  return url.split('#')[0] ?? url
 }
 

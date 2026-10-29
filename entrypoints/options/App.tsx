@@ -34,6 +34,7 @@ export function App() {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -123,6 +124,22 @@ export function App() {
     )
     if (saved && !listenForSubmit) await createChromeSubmitOffer().clear()
   }
+
+  async function onForgetAnswer(id: string): Promise<void> {
+    const current = await createChromeMemoryStore().load()
+    const answer = current.answers.find((item) => item.id === id)
+    if (!answer) return
+    await commit({ ...current, answers: current.answers.filter((item) => item.id !== id) }, `Deleted the answer to "${answer.question}".`)
+  }
+
+  async function onForgetAll(): Promise<void> {
+    const current = await createChromeMemoryStore().load()
+    const count = current.answers.length
+    const saved = await commit({ ...current, answers: [] }, `Deleted ${count} saved answer${count === 1 ? '' : 's'}.`)
+    if (saved) setConfirmClear(false)
+  }
+
+  const answers = [...memory.answers].sort((a, b) => b.savedAt - a.savedAt)
 
   const missingPresets = STARTER_PERSONALITIES.filter(
     (preset) =>
@@ -240,6 +257,56 @@ export function App() {
         </section>
       ) : null}
 
+      <section class="section" id="saved-answers">
+        <h2>Saved answers</h2>
+        <p>
+          {answers.length === 0
+            ? 'No saved answers yet. Choose Review answers on this form in the side panel to keep some.'
+            : `${answers.length} answer${answers.length === 1 ? '' : 's'} on this device, newest first. Every personality uses them.`}
+        </p>
+        {answers.length > 0 ? (
+          <ul class="answer-list">
+            {answers.map((answer) => (
+              <li key={answer.id}>
+                <div class="answer-text">
+                  <p class="q">{answer.question}</p>
+                  <p class="value">{answer.answer}</p>
+                  <p class="meta">{answerSource(answer.host, answer.savedAt)}</p>
+                </div>
+                <button
+                  id={`delete-answer-${answer.id}`}
+                  type="button"
+                  class="secondary"
+                  disabled={!ready}
+                  aria-label={`Delete the answer to ${answer.question}`}
+                  onClick={() => void onForgetAnswer(answer.id)}
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {answers.length > 0 && !confirmClear ? (
+          <button id="clear-answers" type="button" class="secondary" disabled={!ready} onClick={() => setConfirmClear(true)}>
+            Delete all saved answers
+          </button>
+        ) : null}
+        {answers.length > 0 && confirmClear ? (
+          <div class="confirm" role="group" aria-label="Confirm delete">
+            <p>{`Delete all ${answers.length} saved answers? This cannot be undone.`}</p>
+            <div class="confirm-actions">
+              <button id="confirm-clear-answers" type="button" class="danger" disabled={!ready} onClick={() => void onForgetAll()}>
+                Delete all
+              </button>
+              <button type="button" class="secondary" onClick={() => setConfirmClear(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
       <section class="section hosts">
         <h2>Sites</h2>
         <p>Runs on any website. Pause Greenhouse, Lever, or the local demo.</p>
@@ -276,4 +343,9 @@ export function App() {
       </section>
     </div>
   )
+}
+
+function answerSource(host: string, savedAt: number): string {
+  const date = new Date(savedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return host ? `${host} · ${date}` : date
 }

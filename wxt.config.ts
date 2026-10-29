@@ -6,7 +6,8 @@ export default defineConfig({
   manifest: {
     name: 'Localauto',
     description: 'Fills application forms on your device from your profile and answers you confirm.',
-    permissions: ['storage', 'sidePanel', 'activeTab'],
+    minimum_chrome_version: '116',
+    permissions: ['storage', 'sidePanel', 'activeTab', 'scripting'],
     host_permissions: [...HOST_MATCHES],
     action: {
       default_title: 'Open Localauto',

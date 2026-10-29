@@ -45,7 +45,7 @@ export function planAndApply(
     const exact = newest(state.answers.filter((answer) => answer.answer.trim() && sameQuestion(answer.question, field.label)))
     if (exact) {
       if (applyField(field, exact.answer)) {
-        applied.push({ label: field.label, value: exact.answer, via: 'exact', detail: exact.question })
+        applied.push({ label: field.label, value: exact.answer, via: 'exact', detail: 'Saved answer' })
       } else {
         skipped.push({ label: field.label, reason: 'unusable' })
       }
@@ -84,7 +84,7 @@ function bestSuggestion(field: ReadField, answers: readonly SavedAnswer[]): Save
 }
 
 function looksYesNo(field: ReadField): boolean {
-  if (field.kind !== 'radio' && field.kind !== 'checkbox') return false
+  if (field.kind !== 'radio' && field.kind !== 'checkboxes' && field.kind !== 'choice' && field.kind !== 'select') return false
   const pool = field.options.flatMap((option) => [option.label, option.value])
   const hasYes = pool.some((item) => yesNoValue(item) === true)
   const hasNo = pool.some((item) => yesNoValue(item) === false)

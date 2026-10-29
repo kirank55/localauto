@@ -9,36 +9,103 @@
     <main>
       <p class="eyebrow">Lever-style demo</p>
       <h1>Support engineer</h1>
-      <p>This page is local. Nothing here is sent to Lever.</p>
+      <p>This page is local. Nothing here is sent to Lever. The markup follows a Lever application form.</p>
       <form class="application-form">
-        <div class="application-field">
-          <label for="name">Name</label>
-          <input id="name" name="name" type="text" />
-        </div>
-        <div class="application-field">
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" />
-        </div>
-        <div class="application-field">
-          <label for="phone">Phone</label>
-          <input id="phone" name="phone" type="tel" />
-        </div>
-        <div class="application-field">
-          <label for="linkedin">LinkedIn</label>
-          <input id="linkedin" name="urls[LinkedIn]" type="url" />
-        </div>
-        <div class="application-field">
-          <label for="github">GitHub</label>
-          <input id="github" name="urls[GitHub]" type="url" />
-        </div>
-        <div class="application-field">
-          <label for="portfolio">Portfolio</label>
-          <input id="portfolio" name="urls[Portfolio]" type="url" />
-        </div>
-        <div class="application-question">
-          <div class="application-label">Why do you want this role?</div>
-          <textarea name="cards[0][field0]"></textarea>
-        </div>
+        <ul class="application-fields">
+          <li class="application-question">
+            <label>
+              <div class="application-label">Full name<span class="required">✱</span></div>
+              <div class="application-field"><input id="name" name="name" type="text" required /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">Email<span class="required">✱</span></div>
+              <div class="application-field"><input id="email" name="email" type="email" required /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">Phone <span class="required">✱</span></div>
+              <div class="application-field"><input id="phone" name="phone" type="text" required /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">Current location</div>
+              <div class="application-field">
+                <input id="location" class="location-input" name="location" type="text" maxlength="100" />
+                <input type="hidden" name="selectedLocation" />
+                <div class="dropdown-container" hidden>
+                  <div class="dropdown-no-results">No location found. Try entering a different location</div>
+                  <div class="dropdown-loading-results">Loading</div>
+                </div>
+              </div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">Current company</div>
+              <div class="application-field"><input id="org" name="org" type="text" /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">LinkedIn URL</div>
+              <div class="application-field"><input id="linkedin" name="urls[LinkedIn]" type="text" /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">GitHub URL</div>
+              <div class="application-field"><input id="github" name="urls[GitHub]" type="text" /></div>
+            </label>
+          </li>
+          <li class="application-question">
+            <label>
+              <div class="application-label">Portfolio URL</div>
+              <div class="application-field"><input id="portfolio" name="urls[Portfolio]" type="text" /></div>
+            </label>
+          </li>
+        </ul>
+        <ul class="application-fields">
+          <li class="application-question custom-question">
+            <div>
+              <div class="application-label full-width multiple-select">
+                <div class="text">Are you eligible to work in the United States?<span class="required">✱</span></div>
+              </div>
+              <div class="application-field full-width">
+                <ul class="choices">
+                  <li><label><input type="checkbox" name="cards[demo][field0]" value="Yes" /><span class="application-answer-alternative">Yes</span></label></li>
+                  <li><label><input type="checkbox" name="cards[demo][field0]" value="No" /><span class="application-answer-alternative">No</span></label></li>
+                </ul>
+              </div>
+            </div>
+          </li>
+          <li class="application-question custom-question">
+            <div>
+              <div class="application-label full-width multiple-select">
+                <div class="text">Which teams interest you?</div>
+                <p class="description">Select all that apply</p>
+              </div>
+              <div class="application-field full-width">
+                <ul class="choices">
+                  <li><label><input type="checkbox" name="cards[demo][field1]" value="Support" /><span class="application-answer-alternative">Support</span></label></li>
+                  <li><label><input type="checkbox" name="cards[demo][field1]" value="Tools, infrastructure, and data" /><span class="application-answer-alternative">Tools, infrastructure, and data</span></label></li>
+                  <li><label><input type="checkbox" name="cards[demo][field1]" value="Docs" /><span class="application-answer-alternative">Docs</span></label></li>
+                </ul>
+              </div>
+            </div>
+          </li>
+          <li class="application-question custom-question">
+            <div>
+              <div class="application-label full-width">
+                <div class="text">Why do you want this role?</div>
+              </div>
+              <div class="application-field full-width"><textarea name="cards[demo][field2]"></textarea></div>
+            </div>
+          </li>
+        </ul>
       </form>
     </main>
   </body>

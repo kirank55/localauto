@@ -6,6 +6,7 @@ import { parseMemoryState, type MemoryState } from '../src/packages/form-memory/
 import { profileFromForm } from '../src/packages/form-memory/submit'
 
 const host = classifyHost(location.hostname)
+const LOADED = '__localautoContentScript'
 let listening = true
 let enabled = true
 
@@ -14,6 +15,12 @@ export default defineContentScript({
   allFrames: true,
   runAt: 'document_idle',
   main() {
+    // The side panel injects this script into tabs that were open before install or update.
+    // A copy left behind by an older install stays in the page but can no longer reach the extension.
+    const scope = globalThis as unknown as Record<string, { alive(): boolean } | undefined>
+    if (scope[LOADED]?.alive()) return
+    scope[LOADED] = { alive: () => Boolean(browser.runtime?.id) }
+
     if (host) {
       void createChromeMemoryStore().load().then(rememberGate).catch(() => undefined)
       browser.storage.onChanged.addListener((changes, area) => {
@@ -58,7 +65,7 @@ async function run(message: ExtensionRequest): Promise<
   | { kind: 'collect'; candidates: ReturnType<typeof collectSaveCandidates> }
 > {
   if (message.type === 'localauto:accept') {
-    return { kind: 'accept', applied: acceptSuggestion(document, message.fieldId, message.value) }
+    return { kind: 'accept', applied: acceptSuggestion(document, message.fieldId, message.value, message.question) }
   }
   if (message.type === 'localauto:collect') {
     return { kind: 'collect', candidates: collectSaveCandidates(document) }

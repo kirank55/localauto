@@ -435,23 +435,27 @@ http://127.0.0.1/*</pre>
         <div class="wrap">
           <p class="kicker">Install</p>
           <h2>Install the extension.</h2>
-          <p class="quiet">You need Node 22 or newer, and Chrome. This is an unpacked extension, not a store install.</p>
+          <p class="quiet">You need Chrome 116 or newer. The beta is an unpacked extension, not a store install yet.</p>
           <div class="band-grid">
             <div>
               <ol class="use-list">
-                <li>Install dependencies, run the tests, and build.</li>
-                <li>Open <code>chrome://extensions</code>.</li>
-                <li>Turn on Developer mode.</li>
-                <li>Choose Load unpacked and select <code>.output/chrome-mv3</code>.</li>
+                <li>
+                  Download <code>localauto-&lt;version&gt;-chrome.zip</code> from the
+                  <a href="https://github.com/kirank55/localauto/releases">latest release</a>.
+                </li>
+                <li>Unzip it into a folder you will keep.</li>
+                <li>Open <code>chrome://extensions</code> and turn on Developer mode.</li>
+                <li>Choose Load unpacked and select the unzipped folder.</li>
                 <li>Pin Localauto. Click the icon to open the side panel.</li>
               </ol>
               <p class="note">
-                <code>npm run dev</code> rebuilds while you work. Load the folder the dev server prints, the same way.
-                Reload a demo tab once after loading so the content script is present.
+                To update, unzip the new release over the same folder and press reload on the Localauto card. Your
+                profile and saved answers stay. Tabs that were already open work on the first Fill, without a reload.
               </p>
             </div>
             <div>
-              <p class="kicker">Build</p>
+              <p class="kicker">Build from source</p>
+              <p class="note">You need Node 22 or newer. Load <code>.output/chrome-mv3</code> the same way.</p>
               <pre><button type="button" data-copy="build-commands">Copy</button><code id="build-commands">npm install
 npm test
 npm run build</code></pre>
@@ -472,11 +476,14 @@ npm run build</code></pre>
           <h3 class="band-sub">Then use it</h3>
           <ol class="use-list">
             <li>
-              Open the personality button on Profile. Leave Default, or choose Personal, Work, Software engineer, or
-              Create profile. Enter the name, email, phone, and links. Fill empty fields saves that personality and
-              writes it into empty visible fields.
+              Enter your name, email, phone, and links, then Save profile. The personality button switches between
+              Default, Personal, Work, Software engineer, and profiles you create. Fill empty fields writes the
+              selected profile into empty visible fields.
             </li>
-            <li>Answer a custom question. Choose Find answers to save, uncheck anything you do not want kept, then Save selected.</li>
+            <li>
+              Answer a custom question. Choose Review answers on this form, uncheck anything you do not want kept,
+              then Keep. Settings lists every saved answer and deletes any of them.
+            </li>
             <li>
               On the next application, Fill empty fields again. The same question fills. A different wording shows
               under Suggestions with the source question. Accept writes that one field.
