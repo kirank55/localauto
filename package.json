@@ -2,6 +2,16 @@
   "name": "localauto",
   "version": "0.1.0-beta.1",
   "private": true,
+  "description": "Fills application forms on your device from your profile and answers you confirm.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kirank55/localauto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kirank55/localauto/issues"
+  },
+  "homepage": "https://github.com/kirank55/localauto#readme",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -20,7 +30,8 @@
     "try": "node e2e/try.mjs",
     "icons": "node scripts/render-icons.mjs",
     "test:e2e": "npm run build && node e2e/smoke.mjs",
-    "store-assets": "npm run build && node scripts/store-assets.mjs"
+    "store-assets": "npm run build && node scripts/store-assets.mjs",
+    "product-hunt": "npm run build && node scripts/product-hunt.mjs"
   },
   "dependencies": {
     "preact": "^10.26.4"

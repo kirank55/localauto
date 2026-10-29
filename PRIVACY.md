@@ -39,4 +39,4 @@ Localauto does not request `tabs`, `history`, or `webNavigation`, and cannot rea
 
 ## Contact
 
-Questions or concerns: [open an issue](https://github.com/kirank55/localauto/issues).
+Questions or concerns: [open an issue](https://github.com/kirank55/localauto/issues). Vulnerabilities go through a [private advisory](https://github.com/kirank55/localauto/security/advisories/new). See [SECURITY.md](SECURITY.md).

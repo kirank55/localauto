@@ -440,10 +440,13 @@ http://127.0.0.1/*</pre>
             <div>
               <ol class="use-list">
                 <li>
-                  Download <code>localauto-&lt;version&gt;-chrome.zip</code> from the
+                  Download <code>localauto-&lt;version&gt;-chrome.zip</code> and its <code>.sha256</code> file from the
                   <a href="https://github.com/kirank55/localauto/releases">latest release</a>.
                 </li>
-                <li>Unzip it into a folder you will keep.</li>
+                <li>
+                  Check the sum with <code>sha256sum -c localauto-&lt;version&gt;-chrome.zip.sha256</code>, then unzip
+                  into a folder you will keep. On macOS, <code>shasum -a 256 -c</code> with the same file.
+                </li>
                 <li>Open <code>chrome://extensions</code> and turn on Developer mode.</li>
                 <li>Choose Load unpacked and select the unzipped folder.</li>
                 <li>Pin Localauto. Click the icon to open the side panel.</li>
@@ -511,6 +514,8 @@ npm run build</code></pre>
           <a href="#hosts">Hosts</a>
           <a href="#install">Install</a>
           <a href="https://github.com/kirank55/localauto">Source</a>
+          <a href="https://github.com/kirank55/localauto/blob/main/PRIVACY.md">Privacy</a>
+          <a href="https://github.com/kirank55/localauto/blob/main/LICENSE">License</a>
         </nav>
       </div>
     </footer>

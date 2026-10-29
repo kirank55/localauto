@@ -1,0 +1,37 @@
+name: Bug report
+description: A form filled the wrong field, or a field you expected stayed empty
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste your answers, email, phone, resume, or a page that shows them. Security issues go through a private advisory (see SECURITY.md), not here.
+  - type: input
+    id: version
+    attributes:
+      label: Localauto version
+      description: Shown on the Localauto card in chrome://extensions
+      placeholder: 0.1.0-beta.1
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version
+      placeholder: Chrome 131
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Site
+      description: The host only, such as job-boards.greenhouse.io or jobs.lever.co. Leave the query string off.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The question text, what you expected, and what the field did. Do not include your answer.
+    validations:
+      required: true
