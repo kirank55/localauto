@@ -10,6 +10,7 @@ import {
   emptyMemory,
   parseMemoryState,
   PERSONALITY_LIMIT,
+  replacesSavedAnswer,
   selectPersonality,
   writeActiveProfile,
   type MemoryState,
@@ -17,7 +18,7 @@ import {
 } from '../../src/packages/form-memory/memory'
 import type { SaveCandidate } from '../../src/packages/form-memory/model'
 import { mergeSubmitOffer, parseSubmitOffer, type SubmitOffer } from '../../src/packages/form-memory/submit'
-import { findApplicationTab, requestFrames } from './frames'
+import { applicationHeading, findApplicationTab, requestFrames } from './frames'
 
 type CandidateRow = SaveCandidate & { frameId: number; checked: boolean }
 
@@ -35,7 +36,8 @@ export function App() {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [pageLabel, setPageLabel] = useState('No application tab yet')
+  const [pageTitle, setPageTitle] = useState('No application tab yet')
+  const [pageHost, setPageHost] = useState('')
   const [result, setResult] = useState<MergedFill | null>(null)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
   const [ready, setReady] = useState(false)
@@ -267,6 +269,18 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    let active = true
+    void findApplicationTab()
+      .then((tab) => {
+        if (active) showApplication(tab)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
     if (!personalityOpen) return
     function onPointerDown(event: PointerEvent): void {
       const target = event.target
@@ -296,9 +310,10 @@ export function App() {
       if (tab?.id === undefined || !tab.url) {
         setError('Open a Greenhouse or Lever application, or the local demo.')
         setResult(null)
+        showApplication(null)
         return
       }
-      setPageLabel(tab.title || new URL(tab.url).hostname)
+      showApplication(tab)
       const frames = await requestFrames(tab.id, { type: 'localauto:fill' })
       const outcomes = frames.filter((frame) => frame.kind === 'fill').map((frame) => ({ frameId: frame.frameId, outcome: frame.outcome }))
       if (outcomes.length === 0) {
@@ -362,9 +377,10 @@ export function App() {
       const tab = await findApplicationTab()
       if (tab?.id === undefined) {
         setError('Open a Greenhouse or Lever application, or the local demo.')
+        showApplication(null)
         return
       }
-      setPageLabel(tab.title || 'Application')
+      showApplication(tab)
       const frames = await requestFrames(tab.id, { type: 'localauto:collect' })
       const rows: CandidateRow[] = []
       for (const frame of frames) {
@@ -397,11 +413,18 @@ export function App() {
     setCandidates([])
   }
 
+  function showApplication(tab: { title?: string; url?: string } | null | undefined): void {
+    const heading = applicationHeading(tab)
+    setPageTitle(heading.title)
+    setPageHost(heading.host)
+  }
+
   const profile = activeProfile(memory)
   const personalityName = activePersonality(memory).name
   const hiddenSkips = result?.skipped.filter((item) => item.reason === 'hidden').length ?? 0
   const safetySkips = result?.skipped.filter((item) => item.reason === 'password' || item.reason === 'payment') ?? []
   const leftAlone = result?.skipped.filter((item) => item.reason === 'already-filled').length ?? 0
+  const kept = candidates.filter((candidate) => candidate.checked).length
 
   return (
     <div class="app">
@@ -527,17 +550,71 @@ export function App() {
         </button>
       </section>
 
-      <section class="section">
-        <h2>This page</h2>
-        <p class="meta">{pageLabel}</p>
+      <section class="section" id="application">
+        <h2>This application</h2>
+        <p class="role" id="page-title">{pageTitle}</p>
+        {pageHost ? (
+          <p class="host" id="page-host">
+            {pageHost}
+          </p>
+        ) : null}
         <div class="actions">
-          <button id="fill-button" type="button" disabled={!ready || busy} onClick={() => void onFill()}>
-            Fill empty fields
-          </button>
-          <button id="collect-button" type="button" class="secondary" disabled={!ready || busy} onClick={() => void onCollect()}>
-            Find answers to save
-          </button>
+          <div class="choice">
+            <button id="fill-button" type="button" disabled={!ready || busy} onClick={() => void onFill()}>
+              Fill empty fields
+            </button>
+            <p class="meta">Writes your profile and saved answers into blank fields.</p>
+          </div>
+          <div class={candidates.length > 0 ? 'choice on' : 'choice'}>
+            <button
+              id="collect-button"
+              type="button"
+              class="secondary"
+              aria-expanded={candidates.length > 0}
+              disabled={!ready || busy}
+              onClick={() => void onCollect()}
+            >
+              Review answers on this form
+            </button>
+            <p class="meta">Reads questions you already answered.</p>
+          </div>
         </div>
+        {candidates.length > 0 ? (
+          <>
+            <h2 class="list-title">Answers to keep</h2>
+            <p class="meta">Name, email, phone, and links stay on the profile.</p>
+            {candidates.map((candidate, index) => {
+              const replaces = replacesSavedAnswer(memory.answers, candidate.question)
+              return (
+                <article class={candidate.checked ? 'item' : 'item off'} key={`${candidate.frameId}-${candidate.fieldId}`}>
+                  <label class="keep">
+                    <input
+                      type="checkbox"
+                      checked={candidate.checked}
+                      onChange={(event) => {
+                        const checked = event.currentTarget.checked
+                        setCandidates((rows) => rows.map((row, rowIndex) => (rowIndex === index ? { ...row, checked } : row)))
+                      }}
+                    />
+                    Keep
+                  </label>
+                  <p class="q">{candidate.question}</p>
+                  <div class="answer">
+                    <span class="eyebrow">You answered</span>
+                    <p class="value">{candidate.answer}</p>
+                    {replaces ? <p class="hint">Replaces the saved answer for this question.</p> : null}
+                  </div>
+                </article>
+              )
+            })}
+            <p class="count" id="keep-count">
+              <strong>{`${kept} of ${candidates.length}`}</strong> will be kept. Every personality uses them.
+            </p>
+            <button id="save-answers" type="button" disabled={!ready || busy || kept === 0} onClick={() => void onSaveAnswers()}>
+              {`Keep ${kept} ${kept === 1 ? 'answer' : 'answers'}`}
+            </button>
+          </>
+        ) : null}
       </section>
 
       {result && result.applied.length > 0 ? (
@@ -596,31 +673,6 @@ export function App() {
         </section>
       ) : null}
 
-      {candidates.length > 0 ? (
-        <section class="section">
-          <h2>Save answers</h2>
-          <p>Only checked questions are kept. Saved answers are shared across personalities.</p>
-          {candidates.map((candidate, index) => (
-            <label class="check" key={`${candidate.frameId}-${candidate.fieldId}`}>
-              <input
-                type="checkbox"
-                checked={candidate.checked}
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked
-                  setCandidates((rows) => rows.map((row, rowIndex) => (rowIndex === index ? { ...row, checked } : row)))
-                }}
-              />
-              <span>
-                <strong>{candidate.question}</strong>
-                <span class="value">{candidate.answer}</span>
-              </span>
-            </label>
-          ))}
-          <button id="save-answers" type="button" disabled={!ready || busy} onClick={() => void onSaveAnswers()}>
-            Save selected
-          </button>
-        </section>
-      ) : null}
     </div>
   )
 }

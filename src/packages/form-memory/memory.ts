@@ -150,6 +150,12 @@ export function createMemoryStore(persistence: MemoryPersistence): MemoryStore {
   }
 }
 
+export function replacesSavedAnswer(existing: readonly SavedAnswer[], question: string): boolean {
+  const trimmed = question.trim()
+  if (!trimmed) return false
+  return existing.some((saved) => sameQuestion(saved.question, trimmed))
+}
+
 export function rememberAnswers(
   existing: readonly SavedAnswer[],
   confirmed: readonly { question: string; answer: string }[],
