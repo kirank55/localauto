@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Localauto side panel and settings</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: var(--background, #f3f0e8);
+      --ink: var(--foreground, #1c1915);
+      --muted: var(--muted-foreground, #5f584e);
+      --line: var(--border, #ddd4c4);
+      --card: var(--card, #fffdf8);
+      --accent: var(--primary, #1f6b4a);
+      --accent-ink: var(--primary-foreground, #f7fffb);
+      --warn: var(--warning, #8a4b12);
+      --notice-bg: var(--success-surface, #e7f3ec);
+      --warn-bg: var(--warning-surface, #f8eadf);
+      --selected: var(--accent-surface, #e7f3ec);
+      --shadow: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+      --font: var(--font-sans, "Segoe UI", system-ui, sans-serif);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    button, input, select { font: inherit; color: inherit; }
+
+    .stage {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .window {
+      background: var(--bg);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--radius, 12px);
+      padding: 16px;
+      font: 14px/1.45 var(--font);
+    }
+
+    .side { flex: 0 0 320px; width: 320px; }
+    .settings { flex: 1 1 392px; min-width: 0; }
+
+    .app { display: flex; flex-direction: column; gap: 8px; }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    header p, .section p, .meta {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+    }
+
+    .section h2 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .section-row h2 { margin: 0; }
+
+    label { display: block; margin-bottom: 6px; font-size: 13px; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    select {
+      display: block;
+      width: 100%;
+      margin-top: 2px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--ink);
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 7px 12px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    button:disabled { opacity: 0.55; cursor: default; }
+
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .actions { display: flex; flex-direction: column; gap: 6px; }
+
+    .section p.role {
+      margin: 0;
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .host { margin: 4px 0 0; }
+
+    .choice .meta { margin-top: 6px; }
+    .choice button, #save-answers { width: 100%; }
+
+    .choice.on button {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .section h2.list-title { margin: 10px 0 6px; }
+
+    .item {
+      margin-top: 6px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .item.off { opacity: 0.72; }
+
+    .keep {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .keep input { margin: 0; }
+
+    .section p.q {
+      margin: 6px 0;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .answer {
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: var(--bg);
+    }
+
+    .eyebrow {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .answer .value, .card .value { display: block; margin: 0; color: var(--ink); }
+
+    .section p.hint { margin: 8px 0 0; color: var(--warn); font-size: 13px; }
+    .section p.count { margin: 8px 0 0; color: var(--ink); }
+    #save-answers { margin-top: 6px; }
+
+    .notice {
+      margin: 0;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--notice-bg);
+    }
+
+    .card { padding: 6px 0; border-top: 1px solid var(--line); }
+    .card:first-of-type { border-top: 0; padding-top: 0; }
+    .card strong, .card em { display: block; }
+    .card em { margin-top: 4px; color: var(--muted); font-style: normal; }
+    .card button { margin-top: 8px; }
+
+    .check {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin: 8px 0;
+    }
+
+    .check input { margin-top: 3px; }
+
+    .hosts label { display: flex; gap: 8px; align-items: center; }
+
+    .meta.inline { margin: 0; }
+
+    .personality-list { list-style: none; margin: 8px 0 12px; padding: 0; }
+
+    .personality-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .personality-list button { flex-shrink: 0; }
+
+    .profile-fields { display: grid; margin: 10px 0 0; }
+
+    .profile-fields div {
+      display: grid;
+      grid-template-columns: 7.5rem 1fr;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .profile-fields dt, .profile-fields dd { margin: 0; }
+    .profile-fields dt { color: var(--muted); }
+    .profile-fields dd.empty { color: var(--muted); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .value { overflow-wrap: anywhere; }
+
+    .picker { position: relative; min-width: 0; }
+
+    .picker-trigger {
+      display: inline-flex;
+      max-width: 11rem;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .picker-trigger span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .picker-trigger::after {
+      content: "";
+      flex-shrink: 0;
+      border: 4px solid transparent;
+      border-top-color: currentColor;
+      transform: translateY(2px);
+    }
+
+    .picker-trigger[aria-expanded="true"]::after {
+      transform: translateY(-2px) rotate(180deg);
+    }
+
+    .picker-panel {
+      display: none;
+      position: absolute;
+      z-index: 3;
+      top: calc(100% + 4px);
+      right: 0;
+      width: 16rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+    }
+
+    .picker-panel.open { display: block; }
+
+    .picker-menu {
+      list-style: none;
+      max-height: 12rem;
+      margin: 0;
+      padding: 4px;
+      overflow: auto;
+    }
+
+    .picker-create {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .picker-create label, .picker-create .meta { margin: 0; }
+    .picker-create button { width: 100%; }
+
+    .picker-menu button {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .picker-menu button[aria-selected="true"] { background: var(--selected); }
+
+    .add-row { display: flex; flex-direction: column; gap: 8px; }
+    .add-row button { align-self: flex-start; }
+
+    @media (max-width: 700px) {
+      .stage { flex-direction: column; }
+      .side, .settings { width: 100%; flex: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="window side">
+      <div class="app">
+        <header>
+          <div class="header-row">
+            <h1>Localauto</h1>
+            <button id="open-settings" type="button" class="secondary">Settings</button>
+          </div>
+          <p>Answers stay on this device. Nothing is sent to an account.</p>
+        </header>
+
+        <p class="notice" id="notice" role="status">Filled 2 fields.</p>
+
+        <section class="section">
+          <div class="section-row">
+            <h2>Profile</h2>
+            <div class="picker" id="picker">
+              <button id="personality" type="button" class="secondary picker-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="personality-menu" aria-label="Personality, Work">
+                <span id="personality-label">Work</span>
+              </button>
+              <div class="picker-panel" id="personality-panel">
+                <ul id="personality-menu" class="picker-menu" role="listbox" aria-label="Personality">
+                  <li><button type="button" role="option" data-name="Default">Default</button></li>
+                  <li><button type="button" role="option" data-name="Personal">Personal</button></li>
+                  <li><button type="button" role="option" data-name="Work" aria-selected="true">Work</button></li>
+                </ul>
+                <form class="picker-create" id="create-profile-form">
+                  <label>
+                    New profile
+                    <input id="new-profile-name" type="text" placeholder="Contractor" autocomplete="off">
+                  </label>
+                  <button id="create-profile" type="submit" disabled>Create profile</button>
+                  <p class="meta">Delete a profile in Settings.</p>
+                </form>
+              </div>
+            </div>
+          </div>
+          <label>Full name<input id="profile-fullName" type="text" value="Ada Lovelace" placeholder="Ada Lovelace"></label>
+          <label>Email<input id="profile-email" type="email" value="ada@example.com" placeholder="ada@example.com"></label>
+          <label>Phone<input id="profile-phone" type="tel" value="555-010-2030" placeholder="555-010-2030"></label>
+          <label>LinkedIn<input id="profile-linkedin" type="url" value="https://linkedin.com/in/ada" placeholder="https://linkedin.com/in/ada"></label>
+          <label>GitHub<input id="profile-github" type="url" value="https://github.com/ada" placeholder="https://github.com/ada"></label>
+          <label>Website<input id="profile-website" type="url" value="" placeholder="https://ada.example"></label>
+          <button type="button" class="secondary" id="save-profile">Save profile</button>
+        </section>
+
+        <section class="section" id="application">
+          <h2>This application</h2>
+          <p class="role" id="page-title">Software Engineer</p>
+          <p class="host" id="page-host">boards.greenhouse.io</p>
+          <div class="actions">
+            <div class="choice">
+              <button id="fill-button" type="button">Fill empty fields</button>
+              <p class="meta">Writes your profile and saved answers into blank fields.</p>
+            </div>
+            <div class="choice on">
+              <button id="collect-button" type="button" class="secondary" aria-expanded="true">Review answers on this form</button>
+              <p class="meta">Reads questions you already answered.</p>
+            </div>
+          </div>
+          <h2 class="list-title">Answers to keep</h2>
+          <p class="meta">Name, email, phone, and links stay on the profile.</p>
+          <article class="item">
+            <label class="keep"><input type="checkbox" checked data-keep>Keep</label>
+            <p class="q">Are you authorized to work in the United States?</p>
+            <div class="answer">
+              <span class="eyebrow">You answered</span>
+              <p class="value">Yes</p>
+            </div>
+          </article>
+          <article class="item">
+            <label class="keep"><input type="checkbox" checked data-keep>Keep</label>
+            <p class="q">How many years of experience do you have with TypeScript?</p>
+            <div class="answer">
+              <span class="eyebrow">You answered</span>
+              <p class="value">5</p>
+              <p class="hint">Replaces the saved answer for this question.</p>
+            </div>
+          </article>
+          <p class="count" id="keep-count"><strong>2 of 2</strong> will be kept. Every personality uses them.</p>
+          <button id="save-answers" type="button">Keep 2 answers</button>
+        </section>
+
+        <section class="section">
+          <h2>Filled</h2>
+          <div class="card">
+            <strong>Email</strong>
+            <span class="value">ada@example.com</span>
+            <em>From your profile</em>
+          </div>
+          <div class="card">
+            <strong>Full name</strong>
+            <span class="value">Ada Lovelace</span>
+            <em>From your profile</em>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Suggestions</h2>
+          <p>These wordings differ. Nothing is filled until you accept.</p>
+          <div class="card">
+            <strong>Authorised to work in the US</strong>
+            <em>From: Are you authorized to work in the United States?</em>
+            <span class="value">Yes</span>
+            <button type="button" id="accept-0">Accept</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Left alone</h2>
+          <p>Skipped password field: Password</p>
+          <p>1 field already had an answer.</p>
+          <p>Skipped 2 hidden fields.</p>
+        </section>
+      </div>
+    </div>
+
+    <div class="window settings" id="settings">
+      <div class="app">
+        <header>
+          <h1>Settings</h1>
+          <p>The profile you save, personalities, sites, and the submit listener stay on this device.</p>
+        </header>
+
+        <section class="section">
+          <h2>Personalities</h2>
+          <p>Each personality keeps its own name, email, phone, and links. Saved answers stay shared. Default is selected on a new install.</p>
+          <label>
+            Selected
+            <select id="settings-personality">
+              <option value="default">Default</option>
+              <option value="personal">Personal</option>
+              <option value="work" selected>Work</option>
+            </select>
+          </label>
+          <ul class="personality-list" id="personality-list">
+            <li data-id="default">
+              <span>Default</span>
+              <span class="meta inline">Always available</span>
+            </li>
+            <li data-id="personal">
+              <span>Personal</span>
+              <button type="button" class="secondary" data-delete="personal">Delete profile</button>
+            </li>
+            <li data-id="work">
+              <span>Work</span>
+              <button type="button" class="secondary" data-delete="work">Delete profile</button>
+            </li>
+          </ul>
+          <form class="add-row" id="add-personality-form">
+            <label>
+              New personality
+              <input id="new-personality" type="text" placeholder="Contractor">
+            </label>
+            <button id="add-personality" type="submit" disabled>Add</button>
+          </form>
+          <div class="chips" id="preset-chips">
+            <button type="button" class="secondary" data-preset="Software engineer">Software engineer</button>
+          </div>
+        </section>
+
+        <section class="section" id="saved-profile">
+          <h2>Saved profile</h2>
+          <p><span id="saved-personality-name">Work</span> keeps this name, email, phone, and these links on this device.</p>
+          <dl class="profile-fields">
+            <div><dt>Full name</dt><dd id="saved-fullName" class="value">Ada Lovelace</dd></div>
+            <div><dt>Email</dt><dd id="saved-email" class="value">ada@example.com</dd></div>
+            <div><dt>Phone</dt><dd id="saved-phone" class="value">555-010-2030</dd></div>
+            <div><dt>LinkedIn</dt><dd id="saved-linkedin" class="value">https://linkedin.com/in/ada</dd></div>
+            <div><dt>GitHub</dt><dd id="saved-github" class="value">https://github.com/ada</dd></div>
+            <div><dt>Website</dt><dd id="saved-website" class="empty">Not saved</dd></div>
+          </dl>
+        </section>
+
+        <section class="section hosts">
+          <h2>Sites</h2>
+          <p>Runs on Greenhouse, Lever, and the local demo. Other sites stay off.</p>
+          <label><input id="host-greenhouse" type="checkbox" checked>Greenhouse</label>
+          <label><input id="host-lever" type="checkbox" checked>Lever</label>
+          <label><input id="host-demo" type="checkbox" checked>Local demo</label>
+        </section>
+
+        <section class="section">
+          <h2>Submit listener</h2>
+          <label class="check">
+            <input id="listen-for-submit" type="checkbox" checked>
+            <span>Open the side panel when a form is submitted</span>
+          </label>
+          <p>Name, email, phone, and links from the form go into the profile. Save profile keeps them. A written answer still uses Review answers on this form.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const profiles = {
+      Default: { fullName: "", email: "", phone: "", linkedin: "", github: "", website: "" },
+      Personal: { fullName: "Ada Lovelace", email: "ada.personal@example.com", phone: "555-010-1000", linkedin: "https://linkedin.com/in/ada", github: "", website: "https://ada.example" },
+      Work: { fullName: "Ada Lovelace", email: "ada@example.com", phone: "555-010-2030", linkedin: "https://linkedin.com/in/ada", github: "https://github.com/ada", website: "" },
+      "Software engineer": { fullName: "Ada Lovelace", email: "ada.eng@example.com", phone: "", linkedin: "", github: "https://github.com/ada", website: "" }
+    };
+
+    const picker = document.getElementById("picker");
+    const trigger = document.getElementById("personality");
+    const panel = document.getElementById("personality-panel");
+    const label = document.getElementById("personality-label");
+    const notice = document.getElementById("notice");
+
+    function setOpen(open) {
+      panel.classList.toggle("open", open);
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+
+    trigger.addEventListener("click", () => setOpen(!panel.classList.contains("open")));
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!picker.contains(event.target)) setOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
+    });
+
+    function showProfile(name) {
+      label.textContent = name;
+      trigger.setAttribute("aria-label", "Personality, " + name);
+      document.querySelectorAll("#personality-menu button").forEach((button) => {
+        button.setAttribute("aria-selected", button.dataset.name === name ? "true" : "false");
+      });
+      const profile = profiles[name];
+      for (const key of Object.keys(profile)) {
+        const input = document.getElementById("profile-" + key);
+        if (input) input.value = profile[key];
+      }
+      const select = document.getElementById("settings-personality");
+      const option = [...select.options].find((item) => item.textContent === name);
+      if (option) select.value = option.value;
+      document.getElementById("saved-personality-name").textContent = name;
+      paintSaved(profile);
+      notice.textContent = name + " selected.";
+    }
+
+    function paintSaved(profile) {
+      for (const key of Object.keys(profile)) {
+        const node = document.getElementById("saved-" + key);
+        if (!node) continue;
+        const value = profile[key];
+        node.textContent = value || "Not saved";
+        node.className = value ? "value" : "empty";
+      }
+    }
+
+    document.getElementById("personality-menu").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      showProfile(button.dataset.name);
+      setOpen(false);
+    });
+
+    const createName = document.getElementById("new-profile-name");
+    const createButton = document.getElementById("create-profile");
+    createName.addEventListener("input", () => {
+      createButton.disabled = createName.value.trim() === "";
+    });
+
+    document.getElementById("create-profile-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = createName.value.trim();
+      if (!name) return;
+      if (!profiles[name]) profiles[name] = { fullName: "", email: "", phone: "", linkedin: "", github: "", website: "" };
+      const item = document.createElement("li");
+      const option = document.createElement("button");
+      option.type = "button";
+      option.role = "option";
+      option.dataset.name = name;
+      option.textContent = name;
+      item.append(option);
+      document.getElementById("personality-menu").append(item);
+      addSettingsPersonality(name);
+      createName.value = "";
+      createButton.disabled = true;
+      showProfile(name);
+      setOpen(false);
+      notice.textContent = name + " created.";
+    });
+
+    function addSettingsPersonality(name) {
+      const id = name.toLowerCase().replace(/\s+/g, "-");
+      const select = document.getElementById("settings-personality");
+      if (![...select.options].some((option) => option.textContent === name)) {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = name;
+        select.append(option);
+      }
+      const list = document.getElementById("personality-list");
+      if (list.querySelector('[data-id="' + id + '"]')) return;
+      const row = document.createElement("li");
+      row.dataset.id = id;
+      row.innerHTML = "<span></span><button type=\"button\" class=\"secondary\">Delete profile</button>";
+      row.querySelector("span").textContent = name;
+      row.querySelector("button").dataset.delete = id;
+      list.append(row);
+    }
+
+    document.getElementById("settings-personality").addEventListener("change", (event) => {
+      showProfile(event.target.selectedOptions[0].textContent);
+    });
+
+    document.getElementById("personality-list").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete]");
+      if (!button) return;
+      const row = button.closest("li");
+      const name = row.querySelector("span").textContent;
+      row.remove();
+      const select = document.getElementById("settings-personality");
+      [...select.options].filter((option) => option.textContent === name).forEach((option) => option.remove());
+      document.querySelectorAll("#personality-menu button").forEach((item) => {
+        if (item.dataset.name === name) item.closest("li").remove();
+      });
+      if (label.textContent === name) showProfile("Default");
+      notice.textContent = name + " deleted.";
+    });
+
+    const draft = document.getElementById("new-personality");
+    const addButton = document.getElementById("add-personality");
+    draft.addEventListener("input", () => { addButton.disabled = draft.value.trim() === ""; });
+
+    document.getElementById("add-personality-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = draft.value.trim();
+      if (!name) return;
+      if (!profiles[name]) profiles[name] = { fullName: "", email: "", phone: "", linkedin: "", github: "", website: "" };
+      const menu = document.getElementById("personality-menu");
+      if (![...menu.querySelectorAll("button")].some((button) => button.dataset.name === name)) {
+        const item = document.createElement("li");
+        item.innerHTML = "<button type=\"button\" role=\"option\"></button>";
+        const option = item.querySelector("button");
+        option.dataset.name = name;
+        option.textContent = name;
+        menu.append(item);
+      }
+      addSettingsPersonality(name);
+      draft.value = "";
+      addButton.disabled = true;
+      showProfile(name);
+      notice.textContent = name + " added.";
+    });
+
+    document.getElementById("preset-chips").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-preset]");
+      if (!button) return;
+      const name = button.dataset.preset;
+      addSettingsPersonality(name);
+      const menu = document.getElementById("personality-menu");
+      if (![...menu.querySelectorAll("button")].some((item) => item.dataset.name === name)) {
+        const item = document.createElement("li");
+        item.innerHTML = "<button type=\"button\" role=\"option\"></button>";
+        item.querySelector("button").dataset.name = name;
+        item.querySelector("button").textContent = name;
+        menu.append(item);
+      }
+      button.remove();
+      showProfile(name);
+      notice.textContent = name + " added.";
+    });
+
+    document.getElementById("save-profile").addEventListener("click", () => {
+      const name = label.textContent;
+      const profile = profiles[name];
+      for (const key of Object.keys(profile)) {
+        profile[key] = document.getElementById("profile-" + key).value;
+      }
+      paintSaved(profile);
+      notice.textContent = "Profile saved on this device.";
+    });
+
+    const keeps = [...document.querySelectorAll("[data-keep]")];
+    function refreshKeep() {
+      const kept = keeps.filter((box) => box.checked).length;
+      keeps.forEach((box) => box.closest(".item").classList.toggle("off", !box.checked));
+      const count = document.getElementById("keep-count");
+      count.innerHTML = "<strong>" + kept + " of " + keeps.length + "</strong> will be kept. Every personality uses them.";
+      const save = document.getElementById("save-answers");
+      save.disabled = kept === 0;
+      save.textContent = "Keep " + kept + (kept === 1 ? " answer" : " answers");
+    }
+    keeps.forEach((box) => box.addEventListener("change", refreshKeep));
+
+    document.getElementById("save-answers").addEventListener("click", () => {
+      const kept = keeps.filter((box) => box.checked).length;
+      notice.textContent = "Saved " + kept + (kept === 1 ? " answer" : " answers") + " on this device.";
+    });
+
+    document.getElementById("fill-button").addEventListener("click", () => {
+      notice.textContent = "Filled 2 fields.";
+    });
+
+    document.getElementById("accept-0").addEventListener("click", (event) => {
+      event.currentTarget.disabled = true;
+      event.currentTarget.textContent = "Accepted";
+      notice.textContent = "Suggestion applied.";
+    });
+
+    document.getElementById("open-settings").addEventListener("click", () => {
+      document.getElementById("settings").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  </script>
+</body>
+</html>
