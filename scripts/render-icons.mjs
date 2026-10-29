@@ -40,14 +40,14 @@ function png(size) {
         raw[index + 2] = 0
         raw[index + 3] = 0
       } else if (stem || foot) {
-        raw[index] = 255
-        raw[index + 1] = 248
-        raw[index + 2] = 236
+        raw[index] = 244
+        raw[index + 1] = 244
+        raw[index + 2] = 243
         raw[index + 3] = 255
       } else {
-        raw[index] = 31
-        raw[index + 1] = 107
-        raw[index + 2] = 74
+        raw[index] = 23
+        raw[index + 1] = 23
+        raw[index + 2] = 23
         raw[index + 3] = 255
       }
     }
