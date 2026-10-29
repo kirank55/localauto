@@ -77,6 +77,18 @@ header p,
   text-transform: uppercase;
 }
 
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.section-row h2 {
+  margin: 0;
+}
+
 label {
   display: block;
   margin-bottom: 8px;
@@ -333,34 +345,28 @@ select:focus-visible {
 }
 
 .picker {
-  margin-bottom: 8px;
-}
-
-#personality-label {
-  display: block;
-  margin-bottom: 0;
-  font-size: 13px;
+  position: relative;
+  min-width: 0;
 }
 
 .picker-trigger {
-  display: flex;
-  width: 100%;
+  display: inline-flex;
+  max-width: 11rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  text-align: left;
+  gap: 6px;
+}
+
+.picker-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .picker-trigger::after {
   content: '';
-  border: 5px solid transparent;
-  border-top-color: var(--ink);
+  flex-shrink: 0;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
   transform: translateY(2px);
 }
 
@@ -368,14 +374,44 @@ select:focus-visible {
   transform: translateY(-2px) rotate(180deg);
 }
 
-.picker-menu {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 4px;
+.picker-panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 16rem;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgb(28 25 21 / 12%);
+}
+
+.picker-menu {
+  list-style: none;
+  max-height: 12rem;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 0;
+  background: transparent;
   color: var(--ink);
+}
+
+.picker-create {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.picker-create label,
+.picker-create .meta {
+  margin: 0;
+}
+
+.picker-create button {
+  width: 100%;
 }
 
 .picker-menu button {

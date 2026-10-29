@@ -53,7 +53,7 @@ This opens Playwright's Chromium with the extension loaded, the side panel in fr
 
 ## Use it
 
-1. In the side panel, leave **Default** selected, choose Personal, Work, or Software engineer, or **Create profile**. Enter the name, email, phone, and links for that personality. **Fill empty fields** saves it and writes it into empty visible fields.
+1. In the side panel, open the personality button on Profile. Leave **Default** selected, choose Personal, Work, or Software engineer, or **Create profile**. Enter the name, email, phone, and links for that personality. **Fill empty fields** saves it and writes it into empty visible fields.
 2. Answer a custom question on the page. Choose **Review answers on this form**, uncheck anything you do not want kept, then **Keep** the ones to reuse.
 3. On the next application, **Fill empty fields** again. The same question fills. A different wording shows under Suggestions with the source question. **Accept** writes that one field.
 

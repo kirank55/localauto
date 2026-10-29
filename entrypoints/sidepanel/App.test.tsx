@@ -37,6 +37,7 @@ function installBrowser(): void {
         async get() {
           return {}
         },
+        async set() {},
         async remove() {},
       },
       onChanged: {
@@ -78,6 +79,26 @@ async function waitForEnabled(id: string): Promise<HTMLButtonElement> {
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
   throw new Error(`${id} stayed disabled`)
+}
+
+async function waitForPersonality(): Promise<HTMLButtonElement> {
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    const button = document.getElementById('personality')
+    if (button instanceof HTMLButtonElement && !button.disabled && button.textContent?.includes('Default')) return button
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('personality button did not become ready')
+}
+
+async function waitForElement(id: string): Promise<HTMLElement> {
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    const element = document.getElementById(id)
+    if (element) return element
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error(`${id} did not render`)
 }
 
 afterEach(() => {
@@ -185,4 +206,23 @@ test('review lists each answer apart from its question, counts what will be kept
   expect(visibleText(document.getElementById('keep-count')?.textContent)).toBe(
     '1 of 2 will be kept. Every personality uses them.',
   )
+})
+
+test('personality is a compact button on the profile, and the menu stays closed', async () => {
+  stored = emptyMemory()
+  installBrowser()
+  mount()
+  const button = await waitForPersonality()
+
+  expect([...document.querySelectorAll('h2')].map((heading) => heading.textContent)).not.toContain('Personality')
+  expect(button.classList.contains('secondary')).toBe(true)
+  expect(button.getAttribute('aria-expanded')).toBe('false')
+  expect(button.closest('section')?.querySelector('h2')?.textContent).toBe('Profile')
+  expect(document.getElementById('personality-menu')).toBeNull()
+  expect(document.getElementById('create-profile')).toBeNull()
+
+  button.click()
+  const menu = await waitForElement('personality-menu')
+  expect(menu.querySelectorAll('[role="option"]').length).toBe(stored.personalities.length)
+  expect(document.getElementById('create-profile')).toBeInstanceOf(HTMLButtonElement)
 })
