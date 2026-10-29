@@ -6,8 +6,10 @@
 
 **Status:** done
 
+Host scope was later widened: any website fills. Greenhouse, Lever, and the local demo stay the pause groups. See ADR 0005.
+
 - [x] Hidden, password, and payment fields stay empty and are reported as skips.
 - [x] A typed email is left alone.
-- [x] A paused Greenhouse host and an unknown host do not change the page.
+- [x] A paused Greenhouse host does not change the page. A value that is not a website does not either.
 - [x] Frame results merge, and each suggestion remembers its frame.
 - [x] The demo server and README are enough to try the beta locally.

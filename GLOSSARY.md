@@ -45,7 +45,7 @@ Writing values into empty visible fields after the person clicks Fill.
 _Avoid_: autofill, inject, scrape
 
 **Application host**:
-A site Localauto is allowed to run on.
+A website Localauto can fill. Greenhouse, Lever, and the local demo are pause groups. Every other website is an application host as well.
 _Avoid_: domain, origin
 
 **Confirm-save**:

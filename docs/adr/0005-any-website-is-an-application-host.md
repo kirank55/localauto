@@ -1,0 +1,3 @@
+# Any website is an application host
+
+Greenhouse, Lever, and the local demo were the only application hosts so the permission warning stayed narrow. Filling every application needs the content script on the page before Fill or submit, including forms in iframes, so host access is `http://*/*` and `https://*/*`. `<all_urls>` stays out because it also covers file and ftp. Greenhouse, Lever, and the local demo remain the pause groups. Every other website runs. Optional per-site grants were rejected: a content script cannot ask to run on a site it is not already allowed to touch, and the person would have to approve each board before Fill worked.

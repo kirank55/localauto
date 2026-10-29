@@ -22,6 +22,37 @@ describe('frame messages', () => {
     })
   })
 
+  test('accepts a fill result from any website and rejects a host that is not one', () => {
+    const report = { applied: [], suggestions: [], skipped: [] }
+    expect(
+      readFrameResult({
+        type: 'localauto:frame',
+        requestId: 'r1',
+        frameId: 0,
+        kind: 'fill',
+        outcome: { status: 'filled', host: 'jobs.ashbyhq.com', report },
+      })?.kind,
+    ).toBe('fill')
+    expect(
+      readFrameResult({
+        type: 'localauto:frame',
+        requestId: 'r1',
+        frameId: 0,
+        kind: 'fill',
+        outcome: { status: 'filled', host: 'not a host', report },
+      }),
+    ).toBeNull()
+    expect(
+      readFrameResult({
+        type: 'localauto:frame',
+        requestId: 'r1',
+        frameId: 0,
+        kind: 'fill',
+        outcome: { status: 'paused', host: 'boards.greenhouse.io' },
+      }),
+    ).toBeNull()
+  })
+
   test('rejects garbage', () => {
     expect(readFrameResult(null)).toBeNull()
     expect(readFrameResult({ type: 'localauto:frame', kind: 'fill' })).toBeNull()

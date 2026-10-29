@@ -49,7 +49,7 @@ Set values through the native input setter and dispatch `input` and `change`. Re
 
 The review list lives in the side panel. The popup is too small to show which past answer is about to be reused.
 
-A static host list plus per-site opt-in is the store-review posture. `<all_urls>` is out of the first submission.
+A static host list plus per-site opt-in was the store-review posture for the first slice. ADR 0005 widens application hosts to every http and https website. `<all_urls>` stays out.
 
 ### Learning
 

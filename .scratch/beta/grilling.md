@@ -24,7 +24,7 @@ Yes.
 
 **Q6. Which hosts, and how is opt-in expressed?**
 Static hosts: `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, plus localhost for the demo. Each can be paused. No arbitrary opt-in and no `<all_urls>`. See ADR 0003.
-Yes.
+Yes. Superseded by ADR 0005: any http or https website is an application host. The three pause groups remain. `<all_urls>` is still refused.
 
 **Q7. Where are the spec and tickets published?**
 Local markdown under `.scratch/`, not GitHub Issues. `AGENTS.md` was created because the repo had neither `AGENTS.md` nor `CLAUDE.md`.

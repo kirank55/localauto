@@ -10,29 +10,37 @@ type PanelRequest =
 const QUIET_MS = 400
 const MAX_MS = 3000
 
+type TabLike = { id?: number; url?: string; active?: boolean; title?: string }
+
 export function applicationHeading(tab: { title?: string; url?: string } | null | undefined): { title: string; host: string } {
   if (!tab?.url) return { title: 'No application tab yet', host: '' }
-  let host = ''
-  try {
-    const key = classifyHost(new URL(tab.url).hostname)
-    if (key) host = hostLabel(key)
-  } catch {
-    host = ''
+  const key = applicationHost(tab.url)
+  return { title: tab.title?.trim() || 'Application', host: key ? hostLabel(key) : '' }
+}
+
+export function pickApplicationTab<T extends TabLike>(tabs: readonly T[]): T | null {
+  const active = tabs.find((tab) => tab.active)
+  if (active && applicationHost(active.url) && active.id !== undefined) return active
+  if (active?.url?.startsWith('chrome-extension://')) {
+    return tabs.find((tab) => tab.id !== undefined && applicationHost(tab.url) !== null) ?? null
   }
-  return { title: tab.title?.trim() || 'Application', host }
+  return null
 }
 
 export async function findApplicationTab(): Promise<Browser.tabs.Tab | null> {
   const tabs = await browser.tabs.query({ currentWindow: true })
-  const applications = tabs.filter((tab) => {
-    if (tab.id === undefined || !tab.url) return false
-    try {
-      return classifyHost(new URL(tab.url).hostname) !== null
-    } catch {
-      return false
-    }
-  })
-  return applications.find((tab) => tab.active) ?? applications[0] ?? null
+  return pickApplicationTab(tabs)
+}
+
+function applicationHost(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return classifyHost(parsed.hostname)
+  } catch {
+    return null
+  }
 }
 
 export async function requestFrames(tabId: number, message: PanelRequest): Promise<FrameResult[]> {

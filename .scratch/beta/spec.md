@@ -6,11 +6,11 @@ This spec is the beta PRD. Source: `PLAN.md` and `.scratch/beta/grilling.md`.
 
 ## Problem Statement
 
-Applying to jobs means typing the same name, email, phone, links, and short answers into Greenhouse and Lever forms. The tools that fill those forms either keep a cloud profile or reuse an answer only when the wording is identical and often only on the same site. A person who wants the help without an account has nowhere to put the answers they have already given.
+Applying to jobs means typing the same name, email, phone, links, and short answers into form after form. The tools that fill those forms either keep a cloud profile or reuse an answer only when the wording is identical and often only on the same site. A person who wants the help without an account has nowhere to put the answers they have already given.
 
 ## Solution
 
-Localauto is a Chrome extension. The person keeps a profile and confirms the answers on a page they just filled. The next Greenhouse or Lever form fills empty visible fields from that profile and from an exact question match. When the wording differs but the country, yes/no, and number slots agree, Localauto shows the past answer and waits for Accept. Nothing leaves the device.
+Localauto is a Chrome extension. The person keeps a profile and confirms the answers on a page they just filled. The next form, on any website, fills empty visible fields from that profile and from an exact question match. When the wording differs but the country, yes/no, and number slots agree, Localauto shows the past answer and waits for Accept. Nothing leaves the device.
 
 ## User Stories
 
@@ -28,7 +28,7 @@ Localauto is a Chrome extension. The person keeps a profile and confirms the ans
 12. As an applicant, I want fields I already typed to stay as I typed them, so that Fill does not clobber a correction.
 13. As an applicant, I want filled text to go through the native value setter and to emit input and change, so that the host page's own form state updates.
 14. As an applicant, I want to pause Localauto on Greenhouse, Lever, or the demo, so that a site I do not want touched stays untouched.
-15. As an applicant, I want other websites ignored, so that the extension is not a general form filler.
+15. As an applicant, I want Fill on any website, so that a form outside Greenhouse and Lever still uses my profile and saved answers.
 16. As an applicant, I want to review the questions I just answered and choose which to keep, so that learning is deliberate.
 17. As an applicant, I want profile fields excluded from that review, so that my email is not stored a second time as a question.
 18. As an applicant, I want a saved answer to fill when the next question matches aside from case and punctuation, so that exact reuse works across forms.
@@ -65,8 +65,8 @@ Localauto is a Chrome extension. The person keeps a profile and confirms the ans
 - A suggestion requires equal country sets, equal number sets, the same yes/no-ness, and at least one shared significant word. Countries come from a phrase list. Bare "us" counts only in phrases like "the us", "u.s.", "usa", and "united states". One suggestion per question.
 - Fill writes with the platform value setter and dispatches `input` and `change`. Selects and radios match the visible choice. Accept may overwrite. Fill itself does not.
 - Hidden, password, and payment controls are skipped. Disabled and read-only controls are skipped. File, button, and date controls are ignored.
-- Application hosts are `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `localhost`, and `127.0.0.1`. Each can be paused. Content scripts run in all frames. Frames report their own results so the extension does not request browsing-history permissions.
-- The stored shape is a list of personalities (id, name, profile), the selected personality id, a list of saved answers (id, question, answer, time, host), a boolean per application host, and whether submits offer profile details. Default is selected when an older profile is migrated. Parsing drops malformed entries. Confirm-save replaces a canonical question and keeps at most 300 answers. A pending submit offer lives in session storage until the panel applies it. It is not written into the personality until Save profile.
+- Any http or https website is an application host. Greenhouse (`boards.greenhouse.io`, `job-boards.greenhouse.io`), Lever (`jobs.lever.co`), and the local demo (`localhost`, `127.0.0.1`) are the pause groups. Content scripts run in all frames on `http://*/*` and `https://*/*`. Frames report their own results so the extension does not request browsing-history permissions. `<all_urls>` stays out.
+- The stored shape is a list of personalities (id, name, profile), the selected personality id, a list of saved answers (id, question, answer, time, host), a boolean per pause group, and whether submits offer profile details. Default is selected when an older profile is migrated. Parsing drops malformed entries. Confirm-save replaces a canonical question and keeps at most 300 answers. A pending submit offer lives in session storage until the panel applies it. It is not written into the personality until Save profile.
 - A local demo server serves fixture forms that the tests also load.
 
 ## Testing Decisions
@@ -75,7 +75,7 @@ Good tests exercise the public functions and assert known literals. They do not 
 
 Seams:
 
-- `fillDocument` catches profile fill, skips, exact reuse, suggestions, pause, and unknown hosts. It misses Chrome messaging.
+- `fillDocument` catches profile fill, skips, exact reuse, suggestions, pause, any website, and a value that is not a website. It misses Chrome messaging.
 - `acceptSuggestion` catches applying a suggestion.
 - `collectSaveCandidates` and `rememberAnswers` catch confirm-save, including the cross-form learning loop.
 - `createMemoryStore` catches persistence parsing, including an older profile becoming the Default personality. The Chrome adapter is glue.
@@ -89,7 +89,7 @@ The Chrome wiring is checked by loading the built extension against the demo, no
 
 ## Out of Scope
 
-Embeddings, paraphrase reuse beyond the slot rules, `<all_urls>`, arbitrary site opt-in, Workday, LinkedIn Easy Apply, Ashby, Indeed, Comeet, silent save on submit, a popup review list, Dexie, and an offscreen document. The submit demo opens the side panel with profile details filled in. It does not write the personality until Save profile.
+Embeddings, paraphrase reuse beyond the slot rules, `<all_urls>`, Workday's custom widgets, LinkedIn Easy Apply, silent save on submit, a popup review list, Dexie, and an offscreen document. Ordinary fields on any website are filled. The submit demo opens the side panel with profile details filled in. It does not write the personality until Save profile.
 
 ## Further Notes
 

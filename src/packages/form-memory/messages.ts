@@ -1,3 +1,4 @@
+import { classifyHost } from './hosts'
 import type { FillOutcome, SaveCandidate } from './model'
 
 export type ExtensionRequest =
@@ -45,9 +46,9 @@ export function readFrameResult(value: unknown): FrameResult | null {
 function isFillOutcome(value: unknown): value is FillOutcome {
   if (!isRecord(value)) return false
   if (value.status === 'unsupported') return true
-  if (value.status === 'paused') return value.host === 'greenhouse' || value.host === 'lever' || value.host === 'demo'
+  if (value.status === 'paused') return isReportedHost(value.host)
   if (value.status !== 'filled') return false
-  if (value.host !== 'greenhouse' && value.host !== 'lever' && value.host !== 'demo') return false
+  if (!isReportedHost(value.host)) return false
   if (!isRecord(value.report)) return false
   return Array.isArray(value.report.applied) && Array.isArray(value.report.suggestions) && Array.isArray(value.report.skipped)
 }
@@ -59,6 +60,10 @@ function isSaveCandidate(value: unknown): value is SaveCandidate {
     typeof value.question === 'string' &&
     typeof value.answer === 'string'
   )
+}
+
+function isReportedHost(value: unknown): value is string {
+  return typeof value === 'string' && classifyHost(value) === value
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

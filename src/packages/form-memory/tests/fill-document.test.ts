@@ -149,9 +149,16 @@ describe('safety', () => {
     expect(textField(doc, 'email').value).toBe('')
   })
 
-  test('an unknown host does not change the page', () => {
+  test('any other website fills from the same profile', () => {
     const doc = loadDemo('greenhouse.html')
-    const outcome = fillDocument(doc, memory({ profile: ada }), 'www.greenhouse.io')
+    const outcome = fillDocument(doc, memory({ profile: ada, enabledHosts: { greenhouse: false } }), 'jobs.ashbyhq.com')
+    expect(outcome).toMatchObject({ status: 'filled', host: 'jobs.ashbyhq.com' })
+    expect(textField(doc, 'email').value).toBe('ada@example.com')
+  })
+
+  test('a value that is not a website does not change the page', () => {
+    const doc = loadDemo('greenhouse.html')
+    const outcome = fillDocument(doc, memory({ profile: ada }), 'not a host')
     expect(outcome).toEqual({ status: 'unsupported' })
     expect(textField(doc, 'email').value).toBe('')
   })

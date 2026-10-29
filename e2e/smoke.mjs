@@ -13,8 +13,9 @@ if (JSON.stringify(manifest.permissions) !== JSON.stringify(['storage', 'sidePan
   throw new Error(`unexpected permissions ${JSON.stringify(manifest.permissions)}`)
 }
 if (manifest.content_scripts[0]?.all_frames !== true) throw new Error('content script must run in all frames')
-if (!manifest.content_scripts[0].matches.includes('https://jobs.lever.co/*')) {
-  throw new Error('Lever is missing from the content script')
+const matches = manifest.content_scripts[0].matches
+if (!matches.includes('https://*/*') || !matches.includes('http://*/*')) {
+  throw new Error(`content script must run on every website, got ${JSON.stringify(matches)}`)
 }
 
 const server = spawn(process.execPath, ['demo/serve.mjs'], {

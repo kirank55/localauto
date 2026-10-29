@@ -1,6 +1,6 @@
 import { createChromeMemoryStore, MEMORY_STORAGE_KEY } from '../src/packages/form-memory/chrome-memory'
 import { acceptSuggestion, collectSaveCandidates, fillDocument } from '../src/packages/form-memory'
-import { classifyHost, HOST_MATCHES } from '../src/packages/form-memory/hosts'
+import { classifyHost, HOST_MATCHES, isHostEnabled } from '../src/packages/form-memory/hosts'
 import { isExtensionRequest, type ExtensionRequest } from '../src/packages/form-memory/messages'
 import { parseMemoryState, type MemoryState } from '../src/packages/form-memory/memory'
 import { profileFromForm } from '../src/packages/form-memory/submit'
@@ -34,7 +34,7 @@ export default defineContentScript({
 
 function rememberGate(state: MemoryState): void {
   listening = state.listenForSubmit
-  enabled = host ? state.enabledHosts[host] : false
+  enabled = isHostEnabled(state.enabledHosts, location.hostname)
 }
 
 function onSubmit(event: Event): void {

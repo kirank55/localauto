@@ -5,8 +5,7 @@ import { HOST_MATCHES } from './src/packages/form-memory/hosts'
 export default defineConfig({
   manifest: {
     name: 'Localauto',
-    description:
-      'Fills Greenhouse and Lever applications on your device from your profile and answers you confirm.',
+    description: 'Fills application forms on your device from your profile and answers you confirm.',
     permissions: ['storage', 'sidePanel', 'activeTab'],
     host_permissions: [...HOST_MATCHES],
     action: {
