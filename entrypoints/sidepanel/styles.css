@@ -1,14 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f3f0e8;
-  --ink: #1c1915;
-  --muted: #5f584e;
-  --line: #ddd4c4;
-  --card: #fffdf8;
-  --accent: #1f6b4a;
-  --accent-ink: #f7fffb;
-  --warn: #8a4b12;
-  --shadow: 0 1px 0 rgb(28 25 21 / 6%);
+  --bg: #f4f4f3;
+  --ink: #171717;
+  --muted: #5e5e5c;
+  --line: #d9d9d6;
+  --card: #ffffff;
+  --accent: #171717;
+  --accent-ink: #f4f4f3;
+  --warn: #171717;
+  --soft: #ececeb;
+  --alert: #e4e4e2;
+  --shadow: 0 1px 0 rgb(23 23 23 / 6%);
 }
 
 * {
@@ -107,7 +109,7 @@ select {
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
 }
 
@@ -124,6 +126,14 @@ button.secondary {
   background: transparent;
   color: var(--ink);
   border: 1px solid var(--line);
+}
+
+button:hover:not(:disabled) {
+  background: #2c2c2c;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--soft);
 }
 
 button:disabled {
@@ -226,8 +236,9 @@ select:focus-visible {
 
 .section p.hint {
   margin: 8px 0 0;
-  color: var(--warn);
+  color: var(--ink);
   font-size: 13px;
+  font-weight: 600;
 }
 
 .section p.count {
@@ -243,12 +254,13 @@ select:focus-visible {
   margin: 0;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #e7f3ec;
+  background: var(--soft);
 }
 
 .notice.error {
-  background: #f8eadf;
-  color: var(--warn);
+  background: var(--alert);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--ink);
 }
 
 .card {
@@ -431,7 +443,7 @@ select:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--card);
-  box-shadow: 0 8px 24px rgb(28 25 21 / 12%);
+  box-shadow: 0 8px 24px rgb(23 23 23 / 12%);
 }
 
 .picker-menu {
@@ -468,13 +480,13 @@ select:focus-visible {
   padding: 8px 10px;
   border: 0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
   text-align: left;
 }
 
 .picker-menu button[aria-selected='true'] {
-  background: #e7f3ec;
+  background: var(--soft);
 }
 
 .answer-list {
@@ -513,12 +525,13 @@ select:focus-visible {
 .confirm {
   padding: 10px;
   border-radius: 8px;
-  background: #f8eadf;
+  background: var(--alert);
+  box-shadow: inset 3px 0 0 var(--ink);
 }
 
 .section .confirm p {
   margin: 0 0 8px;
-  color: var(--warn);
+  color: var(--ink);
 }
 
 .confirm-actions {
