@@ -6,6 +6,7 @@ import {
   emptyProfile,
   PERSONALITY_LIMIT,
   rememberAnswers,
+  replacesSavedAnswer,
   removePersonality,
   selectPersonality,
   writeActiveProfile,
@@ -143,6 +144,17 @@ describe('personalities', () => {
     for (let index = 0; index < 20; index += 1) state = addPersonality(state, `Extra ${index}`)
     expect(state.personalities).toHaveLength(PERSONALITY_LIMIT)
     expect(addPersonality(state, 'One more')).toBe(state)
+  })
+})
+
+describe('replacesSavedAnswer', () => {
+  test('a repeated question, aside from case and punctuation, replaces the saved answer', () => {
+    const existing: SavedAnswer[] = [
+      { id: 'a', question: 'Why do you want this role???', answer: 'Old', savedAt: 1, host: 'jobs.lever.co' },
+    ]
+    expect(replacesSavedAnswer(existing, 'Why do you want this role?')).toBe(true)
+    expect(replacesSavedAnswer(existing, 'How many years of Python experience do you have?')).toBe(false)
+    expect(replacesSavedAnswer(existing, '   ')).toBe(false)
   })
 })
 

@@ -271,7 +271,7 @@ export function App() {
         </label>
         <p>
           Name, email, phone, and links from the form go into the profile. Save profile keeps them. A written answer
-          still uses Find answers to save.
+          still uses Review answers on this form.
         </p>
       </section>
     </div>

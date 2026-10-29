@@ -1,5 +1,5 @@
 import type { Browser } from 'wxt/browser'
-import { classifyHost } from '../../src/packages/form-memory/hosts'
+import { classifyHost, hostLabel } from '../../src/packages/form-memory/hosts'
 import { isExtensionRequest, readFrameResult, type FrameResult } from '../../src/packages/form-memory/messages'
 
 type PanelRequest =
@@ -9,6 +9,18 @@ type PanelRequest =
 
 const QUIET_MS = 400
 const MAX_MS = 3000
+
+export function applicationHeading(tab: { title?: string; url?: string } | null | undefined): { title: string; host: string } {
+  if (!tab?.url) return { title: 'No application tab yet', host: '' }
+  let host = ''
+  try {
+    const key = classifyHost(new URL(tab.url).hostname)
+    if (key) host = hostLabel(key)
+  } catch {
+    host = ''
+  }
+  return { title: tab.title?.trim() || 'Application', host }
+}
 
 export async function findApplicationTab(): Promise<Browser.tabs.Tab | null> {
   const tabs = await browser.tabs.query({ currentWindow: true })
