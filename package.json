@@ -1,6 +1,6 @@
 {
   "name": "localauto",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,7 +19,8 @@
     "demo": "node demo/serve.mjs",
     "try": "node e2e/try.mjs",
     "icons": "node scripts/render-icons.mjs",
-    "test:e2e": "npm run build && node e2e/smoke.mjs"
+    "test:e2e": "npm run build && node e2e/smoke.mjs",
+    "store-assets": "npm run build && node scripts/store-assets.mjs"
   },
   "dependencies": {
     "preact": "^10.26.4"

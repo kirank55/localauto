@@ -1,0 +1,3 @@
+# Fill adds Localauto to tabs that were open before install
+
+Chrome does not inject manifest content scripts into tabs that were already open when an extension is installed or updated. A person who installs the beta with an application open used to be told to reload it, which loses what they typed. When no frame answers Fill or Review, the side panel runs the manifest's own content scripts in that tab with `chrome.scripting` and asks again. `scripting` adds no install warning beyond the host access ADR 0005 already asks for. The content script marks itself loaded and checks that a copy left by an older install can still reach the extension, so a second copy does not run twice.
