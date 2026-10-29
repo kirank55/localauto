@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { MEMORY_STORAGE_KEY } from '../../src/packages/form-memory/chrome-memory'
 import { emptyMemory, type MemoryState } from '../../src/packages/form-memory/memory'
 import { App } from './App'
-import { applicationHeading, findApplicationTab, requestFrames } from './frames'
+import { applicationHeading, findApplicationTab, pickApplicationTab, requestFrames } from './frames'
 
 vi.mock('./frames', async () => {
   const actual = await vi.importActual<typeof import('./frames')>('./frames')
@@ -125,6 +125,24 @@ test('application heading uses the tab title and the host', () => {
     host: 'Local demo',
   })
   expect(applicationHeading({ title: 'Demo', url: 'not a url' })).toEqual({ title: 'Demo', host: '' })
+  expect(applicationHeading({ title: 'Engineer', url: 'https://jobs.ashbyhq.com/acme/1' })).toEqual({
+    title: 'Engineer',
+    host: 'jobs.ashbyhq.com',
+  })
+  expect(applicationHeading({ title: 'Settings', url: 'chrome://settings/' })).toEqual({
+    title: 'Settings',
+    host: '',
+  })
+})
+
+test('the application tab is the active website, and the panel page falls back to one', () => {
+  const demo = { id: 1, url: 'http://127.0.0.1:4173/greenhouse.html', active: false }
+  const panel = { id: 2, url: 'chrome-extension://abc/sidepanel.html', active: true }
+  const ashby = { id: 3, url: 'https://jobs.ashbyhq.com/acme/1', active: true }
+  const settings = { id: 4, url: 'chrome://settings/', active: true }
+  expect(pickApplicationTab([demo, panel])?.id).toBe(1)
+  expect(pickApplicationTab([demo, ashby])?.id).toBe(3)
+  expect(pickApplicationTab([{ ...ashby, active: false }, settings])).toBeNull()
 })
 
 test('the side panel names the open application and says what fill and review do', async () => {

@@ -242,7 +242,7 @@ export function App() {
 
       <section class="section hosts">
         <h2>Sites</h2>
-        <p>Runs on Greenhouse, Lever, and the local demo. Other sites stay off.</p>
+        <p>Runs on any website. Pause Greenhouse, Lever, or the local demo.</p>
         {HOSTS.map((host) => (
           <label key={host}>
             <input

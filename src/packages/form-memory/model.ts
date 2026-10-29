@@ -1,5 +1,3 @@
-import type { HostKey } from './hosts'
-
 export type AppliedFill = {
   label: string
   value: string
@@ -30,8 +28,8 @@ export type FillReport = {
 
 export type FillOutcome =
   | { status: 'unsupported' }
-  | { status: 'paused'; host: HostKey }
-  | { status: 'filled'; host: HostKey; report: FillReport }
+  | { status: 'paused'; host: string }
+  | { status: 'filled'; host: string; report: FillReport }
 
 export type SaveCandidate = {
   fieldId: string
@@ -46,7 +44,7 @@ export type FrameFill = {
 
 export type MergedFill = {
   status: 'unsupported' | 'paused' | 'filled'
-  host: HostKey | null
+  host: string | null
   applied: AppliedFill[]
   suggestions: Array<Suggestion & { frameId: number }>
   skipped: SkippedField[]

@@ -80,6 +80,7 @@ test('settings shows the profile saved for the selected personality', async () =
   expect(document.getElementById('saved-github')?.textContent).toBe('https://github.com/ada')
   expect(document.getElementById('saved-website')?.textContent).toBe('https://ada.example')
   expect(document.getElementById('saved-profile')?.textContent).toContain('Default')
+  expect(document.body.textContent).toContain('Runs on any website.')
 })
 
 test('settings shows another personality as not saved until that profile has data', async () => {

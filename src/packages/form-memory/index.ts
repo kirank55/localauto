@@ -1,4 +1,4 @@
-import { classifyHost } from './hosts'
+import { classifyHost, isHostEnabled } from './hosts'
 import { applyField } from './lib/apply'
 import { planAndApply } from './lib/plan'
 import { matchProfileSlot } from './lib/profile-slot'
@@ -23,7 +23,7 @@ export type { MemoryState, Profile, SavedAnswer } from './memory'
 export function fillDocument(document: Document, state: MemoryState, hostname: string): FillOutcome {
   const host = classifyHost(hostname)
   if (!host) return { status: 'unsupported' }
-  if (!state.enabledHosts[host]) return { status: 'paused', host }
+  if (!isHostEnabled(state.enabledHosts, hostname)) return { status: 'paused', host }
   const planned = planAndApply(readFields(document), state)
   return { status: 'filled', host, report: planned }
 }

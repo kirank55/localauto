@@ -308,7 +308,7 @@ export function App() {
       if (!saved) return
       const tab = await findApplicationTab()
       if (tab?.id === undefined || !tab.url) {
-        setError('Open a Greenhouse or Lever application, or the local demo.')
+        setError('Open the page you want to fill.')
         setResult(null)
         showApplication(null)
         return
@@ -376,7 +376,7 @@ export function App() {
       await enqueue(() => flushNow())
       const tab = await findApplicationTab()
       if (tab?.id === undefined) {
-        setError('Open a Greenhouse or Lever application, or the local demo.')
+        setError('Open the page you want to fill.')
         showApplication(null)
         return
       }
