@@ -5,6 +5,10 @@ describe('frame messages', () => {
   test('accepts a fill request and a frame result', () => {
     expect(isExtensionRequest({ type: 'localauto:fill', requestId: 'r1' })).toBe(true)
     expect(isExtensionRequest({ type: 'localauto:accept', requestId: 'r1', fieldId: 'email', value: 'a' })).toBe(false)
+    expect(isExtensionRequest({ type: 'localauto:accept', requestId: 'r1', fieldId: 'email', value: 'a', frameId: 0 })).toBe(false)
+    expect(
+      isExtensionRequest({ type: 'localauto:accept', requestId: 'r1', fieldId: 'email', value: 'a', question: 'Email', frameId: 0 }),
+    ).toBe(true)
     expect(
       readFrameResult({
         type: 'localauto:frame',

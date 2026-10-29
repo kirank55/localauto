@@ -16,7 +16,7 @@ const SHORT_LABEL_WORDS = 4
 
 export function matchProfileSlot(field: ReadField): ProfileSlot | null {
   if (field.skip) return null
-  if (field.kind === 'radio' || field.kind === 'checkbox' || field.kind === 'select') return null
+  if (field.kind !== 'text' && field.kind !== 'textarea') return null
 
   const nameHay = canonicalize(`${field.name} ${field.id} ${field.autocomplete} ${field.placeholder}`)
   const label = canonicalize(field.label)

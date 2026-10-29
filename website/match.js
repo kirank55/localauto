@@ -108,6 +108,19 @@ const STOP = new Set([
   'which',
   'many',
   'much',
+  // Form modifiers that say which kind of value, not what it is about: "current company" is not "current location".
+  'current',
+  'currently',
+  'desired',
+  'preferred',
+  'expected',
+  'previous',
+  'most',
+  'recent',
+  'please',
+  'enter',
+  'provide',
+  'select',
 ])
 
 function canonicalize(input) {

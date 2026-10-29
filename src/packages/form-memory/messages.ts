@@ -3,7 +3,7 @@ import type { FillOutcome, SaveCandidate } from './model'
 
 export type ExtensionRequest =
   | { type: 'localauto:fill'; requestId: string }
-  | { type: 'localauto:accept'; requestId: string; fieldId: string; value: string; frameId: number }
+  | { type: 'localauto:accept'; requestId: string; fieldId: string; value: string; question: string; frameId: number }
   | { type: 'localauto:collect'; requestId: string }
 
 export type FrameResult =
@@ -18,6 +18,7 @@ export function isExtensionRequest(value: unknown): value is ExtensionRequest {
     value.type === 'localauto:accept' &&
     typeof value.fieldId === 'string' &&
     typeof value.value === 'string' &&
+    typeof value.question === 'string' &&
     typeof value.frameId === 'number'
   )
 }

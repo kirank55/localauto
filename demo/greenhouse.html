@@ -55,6 +55,22 @@
             <option value="no">No</option>
           </select>
         </div>
+        <div class="field select__container">
+          <label id="relocate-label" for="relocate" class="select__label">Are you open to relocation for this role? <span aria-hidden="true">*</span></label>
+          <div class="select-shell" data-demo-choice='["Yes", "No"]'>
+            <div class="select__control">
+              <div class="select__value-container">
+                <div class="select__placeholder">Select...</div>
+                <div class="select__input-container" data-value="">
+                  <input class="select__input" id="relocate" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="true" aria-labelledby="relocate-label" autocomplete="off" />
+                </div>
+              </div>
+              <span class="select__indicator" aria-hidden="true">▾</span>
+            </div>
+            <div class="select__menu" role="listbox" hidden></div>
+            <input required tabindex="-1" aria-hidden="true" class="select__required" value="" />
+          </div>
+        </div>
         <div class="field">
           <label for="why">Why do you want this role?</label>
           <textarea id="why" name="job_application[answers_attributes][2][text_value]"></textarea>
@@ -65,5 +81,6 @@
         </div>
       </form>
     </main>
+    <script src="choice.js"></script>
   </body>
 </html>

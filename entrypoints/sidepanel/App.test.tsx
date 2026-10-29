@@ -15,6 +15,18 @@ vi.mock('./frames', async () => {
 })
 
 const listeners = new Set<(changes: Record<string, { newValue?: unknown }>, area: string) => void>()
+const tabEvents = {
+  activated: new Set<() => void>(),
+  updated: new Set<(tabId: number, change: { url?: string }) => void>(),
+  removed: new Set<(tabId: number) => void>(),
+}
+
+function tabEvent<T extends (...args: never[]) => void>(set: Set<T>) {
+  return {
+    addListener: (listener: T) => set.add(listener),
+    removeListener: (listener: T) => set.delete(listener),
+  }
+}
 let stored: MemoryState
 let container: HTMLElement | undefined
 
@@ -22,6 +34,11 @@ function installBrowser(): void {
   vi.stubGlobal('browser', {
     runtime: {
       async openOptionsPage() {},
+    },
+    tabs: {
+      onActivated: tabEvent(tabEvents.activated),
+      onUpdated: tabEvent(tabEvents.updated),
+      onRemoved: tabEvent(tabEvents.removed),
     },
     storage: {
       local: {
@@ -105,6 +122,7 @@ afterEach(() => {
   if (container) render(null, container)
   container = undefined
   listeners.clear()
+  for (const set of Object.values(tabEvents)) set.clear()
   document.body.replaceChildren()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
@@ -243,4 +261,188 @@ test('personality is a compact button on the profile, and the menu stays closed'
   const menu = await waitForElement('personality-menu')
   expect(menu.querySelectorAll('[role="option"]').length).toBe(stored.personalities.length)
   expect(document.getElementById('create-profile')).toBeInstanceOf(HTMLButtonElement)
+})
+
+const ada = {
+  fullName: 'Ada Lovelace',
+  email: 'ada@example.com',
+  phone: '555-010-2030',
+  linkedin: '',
+  github: '',
+  website: '',
+}
+
+function savedProfile(): MemoryState {
+  const base = emptyMemory()
+  return {
+    ...base,
+    personalities: base.personalities.map((personality) =>
+      personality.id === 'default' ? { ...personality, profile: { ...ada } } : personality,
+    ),
+  }
+}
+
+async function until<T>(read: () => T | null | undefined | false): Promise<T> {
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    const value = read()
+    if (value) return value
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('condition was not met')
+}
+
+test('a saved profile shows as a summary so Fill stays in reach, and Edit profile opens the form', async () => {
+  stored = savedProfile()
+  installBrowser()
+  mount()
+
+  const edit = await waitForEnabled('edit-profile')
+  expect(document.getElementById('profile-fullName')).toBeNull()
+  expect(document.getElementById('profile-summary')?.textContent).toContain('Ada Lovelace')
+  expect(document.getElementById('profile-summary')?.textContent).toContain('ada@example.com')
+  expect(document.getElementById('profile-summary')?.textContent).not.toContain('GitHub')
+
+  edit.click()
+  const name = await until(() => document.getElementById('profile-fullName'))
+  expect(name).toBeInstanceOf(HTMLInputElement)
+})
+
+test('an empty profile opens on the form', async () => {
+  stored = emptyMemory()
+  installBrowser()
+  mount()
+  await waitForPersonality()
+  expect(document.getElementById('profile-fullName')).toBeInstanceOf(HTMLInputElement)
+  expect(document.getElementById('edit-profile')).toBeNull()
+})
+
+function fillWithSuggestion(): void {
+  vi.mocked(requestFrames).mockResolvedValue([
+    {
+      type: 'localauto:frame',
+      requestId: 'fill',
+      frameId: 0,
+      kind: 'fill',
+      outcome: {
+        status: 'filled',
+        host: 'greenhouse',
+        report: {
+          applied: [],
+          skipped: [],
+          suggestions: [
+            {
+              fieldId: 'python',
+              label: 'Years of Python experience',
+              value: '5',
+              sourceQuestion: 'How many years of Python experience do you have?',
+              savedAnswerId: 'years',
+            },
+          ],
+        },
+      },
+    },
+  ])
+}
+
+const greenhouseTab = { id: 4, title: 'Product engineer', url: 'https://boards.greenhouse.io/acme/jobs/1' }
+
+test('suggestions are dropped when their tab moves to another page', async () => {
+  stored = savedProfile()
+  installBrowser()
+  vi.mocked(findApplicationTab).mockResolvedValue(greenhouseTab as Awaited<ReturnType<typeof findApplicationTab>>)
+  fillWithSuggestion()
+  mount()
+  ;(await waitForEnabled('fill-button')).click()
+  await until(() => document.getElementById('accept-0'))
+
+  for (const listener of tabEvents.updated) listener(4, { url: 'https://boards.greenhouse.io/acme/jobs/1#app' })
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  expect(document.getElementById('accept-0')).not.toBeNull()
+
+  for (const listener of tabEvents.updated) listener(4, { url: 'https://boards.greenhouse.io/acme/jobs/2' })
+  await until(() => document.getElementById('accept-0') === null)
+})
+
+test('switching tabs keeps the results, says where they came from, and Accept still goes to that tab', async () => {
+  stored = savedProfile()
+  installBrowser()
+  vi.mocked(findApplicationTab).mockResolvedValue(greenhouseTab as Awaited<ReturnType<typeof findApplicationTab>>)
+  fillWithSuggestion()
+  mount()
+  ;(await waitForEnabled('fill-button')).click()
+  const accept = await until(() => document.getElementById('accept-0'))
+  expect(document.getElementById('result-source')).toBeNull()
+
+  vi.mocked(findApplicationTab).mockResolvedValue({
+    id: 9,
+    title: 'Notes',
+    url: 'https://notes.example/resume',
+  } as Awaited<ReturnType<typeof findApplicationTab>>)
+  for (const listener of tabEvents.activated) listener()
+  await waitForText('result-source', 'Results below are from Product engineer, in another tab.')
+
+  vi.mocked(requestFrames).mockResolvedValue([
+    { type: 'localauto:frame', requestId: 'accept', frameId: 0, kind: 'accept', applied: true },
+  ])
+  accept.click()
+  await waitForText('notice', 'Suggestion applied.')
+  expect(vi.mocked(requestFrames).mock.lastCall?.[0]).toBe(4)
+  expect(vi.mocked(requestFrames).mock.lastCall?.[1]).toMatchObject({
+    type: 'localauto:accept',
+    fieldId: 'python',
+    question: 'Years of Python experience',
+  })
+})
+
+test('an answer deleted in Settings stays deleted when the panel saves the profile', async () => {
+  stored = {
+    ...savedProfile(),
+    answers: [{ id: 'why', question: 'Why do you want this role?', answer: 'Old', savedAt: 1, host: 'jobs.lever.co' }],
+  }
+  installBrowser()
+  mount()
+  ;(await waitForEnabled('edit-profile')).click()
+  const name = await until(() => document.getElementById('profile-fullName'))
+  if (!(name instanceof HTMLInputElement)) throw new Error('missing name input')
+  name.focus()
+
+  stored = { ...stored, answers: [] }
+  for (const listener of listeners) listener({ [MEMORY_STORAGE_KEY]: { newValue: stored } }, 'local')
+
+  name.value = 'Ada King'
+  name.dispatchEvent(new Event('input', { bubbles: true }))
+  ;(await waitForEnabled('save-profile')).click()
+
+  await until(() => stored.personalities[0]?.profile.fullName === 'Ada King')
+  expect(stored.answers).toEqual([])
+})
+
+test('reviewing another page replaces the fill results that were on screen', async () => {
+  stored = savedProfile()
+  installBrowser()
+  vi.mocked(findApplicationTab).mockResolvedValue(greenhouseTab as Awaited<ReturnType<typeof findApplicationTab>>)
+  fillWithSuggestion()
+  mount()
+  ;(await waitForEnabled('fill-button')).click()
+  await until(() => document.getElementById('accept-0'))
+
+  vi.mocked(findApplicationTab).mockResolvedValue({
+    id: 7,
+    title: 'Support engineer',
+    url: 'https://jobs.lever.co/acme/2/apply',
+  } as Awaited<ReturnType<typeof findApplicationTab>>)
+  vi.mocked(requestFrames).mockResolvedValue([
+    {
+      type: 'localauto:frame',
+      requestId: 'review',
+      frameId: 0,
+      kind: 'collect',
+      candidates: [{ fieldId: 'why', question: 'Why do you want this role?', answer: 'Local tools.' }],
+    },
+  ])
+  ;(await waitForEnabled('collect-button')).click()
+  await waitForText('save-answers', 'Keep 1 answer')
+  expect(document.getElementById('accept-0')).toBeNull()
+  expect(document.getElementById('suggestions')).toBeNull()
 })

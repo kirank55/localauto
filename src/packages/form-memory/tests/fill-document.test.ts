@@ -226,7 +226,7 @@ describe('suggestions', () => {
     const suggestion = outcome.status === 'filled' ? outcome.report.suggestions[0] : undefined
     expect(suggestion?.value).toBe('Yes')
     expect(suggestion?.sourceQuestion).toBe('Are you authorized to work in the United States?')
-    expect(suggestion && acceptSuggestion(doc, suggestion.fieldId, suggestion.value)).toBe(true)
+    expect(suggestion && acceptSuggestion(doc, suggestion.fieldId, suggestion.value, suggestion.label)).toBe(true)
     expect(radioValue(doc, 'auth')).toBe('yes')
     expect(radioValue(doc, 'uk')).toBe('')
   })
@@ -293,6 +293,23 @@ describe('suggestions', () => {
     )
     expect(textField(docAgain, 'project').value).toBe('')
     expect(outcome.status === 'filled' && outcome.report.suggestions.map((item) => item.value)).toEqual(['I like small tools.'])
+  })
+
+  test('does not suggest across fields that share only a word like "current"', () => {
+    const doc = mount(`
+      <label for="location">Current location</label>
+      <input id="location" />
+      <label for="salary">Desired salary</label>
+      <input id="salary" />
+    `)
+    const outcome = fillDocument(
+      doc,
+      memory({ answers: [saved('Current company', 'Analytical Engines'), saved('Expected salary', '120000', 2)] }),
+      'localhost',
+    )
+    expect(outcome.status === 'filled' && outcome.report.suggestions.map((item) => [item.label, item.sourceQuestion])).toEqual([
+      ['Desired salary', 'Expected salary'],
+    ])
   })
 
   test('suggests a sponsorship paraphrase without selecting it', () => {

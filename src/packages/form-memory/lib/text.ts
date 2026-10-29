@@ -27,6 +27,16 @@ export function cleanText(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
+/** Label text without the required star or an (Optional) / (Required) tag, so the stored question reads cleanly. */
+export function cleanQuestion(value: string): string {
+  return cleanText(value)
+    .replace(/^\((?:optional|required)\)\s*/i, '')
+    .replace(/\s*\((?:optional|required)\)$/i, '')
+    .replace(/[\s*✱]+$/u, '')
+    .replace(/^[*✱]+\s*/u, '')
+    .trim()
+}
+
 const YES = new Set(['yes', 'y', 'true'])
 const NO = new Set(['no', 'n', 'false'])
 
